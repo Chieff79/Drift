@@ -108,11 +108,11 @@ jobs:
             aarch: universal
             targets: dmg,pkg
             
-          # - platform: ios
-          #   os: macos-15
-          #   aarch: universal
-          #   filename: hiddify-ios
-          #   targets: ipa
+          - platform: ios
+            os: macos-15
+            aarch: universal
+            filename: Drift-iOS
+            targets: ipa
     runs-on: ${{ matrix.os }}
     steps:
       - name: checkout
