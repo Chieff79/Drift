@@ -19,18 +19,18 @@ env:
   NDK_VERSION: r28c
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   TAG_NAME: "${{ inputs.tag-name }}"
-  TARGET_NAME_gz: "VeilVPN-Linux-x64-AppImage.tar"
-  TARGET_NAME_AppImage: "VeilVPN-Linux-x64-AppImage"
-  TARGET_NAME_deb: "VeilVPN-Debian-x64"
+  TARGET_NAME_gz: "Drift-Linux-x64-AppImage.tar"
+  TARGET_NAME_AppImage: "Drift-Linux-x64-AppImage"
+  TARGET_NAME_deb: "Drift-Debian-x64"
   # TARGET_NAME_rpm: "Hiddify-rpm-x64"
-  TARGET_NAME_apk: "VeilVPN-Android"
-  TARGET_NAME_aab: "VeilVPN-Android"
-  TARGET_NAME_exe: "VeilVPN-Windows-Setup-x64"
-  TARGET_NAME_msix: "VeilVPN-Windows-x64"
-  TARGET_NAME_zip: "VeilVPN-Windows-Portable-x64"
-  TARGET_NAME_dmg: "VeilVPN-MacOS"
-  TARGET_NAME_pkg: "VeilVPN-MacOS-Installer"
-  TARGET_NAME_ipa: "VeilVPN-iOS"
+  TARGET_NAME_apk: "Drift-Android"
+  TARGET_NAME_aab: "Drift-Android"
+  TARGET_NAME_exe: "Drift-Windows-Setup-x64"
+  TARGET_NAME_msix: "Drift-Windows-x64"
+  TARGET_NAME_zip: "Drift-Windows-Portable-x64"
+  TARGET_NAME_dmg: "Drift-MacOS"
+  TARGET_NAME_pkg: "Drift-MacOS-Installer"
+  TARGET_NAME_ipa: "Drift-iOS"
   
 
 jobs:
@@ -522,7 +522,7 @@ jobs:
 
       - uses: Apple-Actions/upload-testflight-build@v4
         with:
-          app-path: 'out/VeilVPN-iOS.ipa' 
+          app-path: 'out/Drift-iOS.ipa' 
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
