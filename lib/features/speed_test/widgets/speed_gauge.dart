@@ -2,6 +2,16 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+// Scale markings with logarithmic positions
+const List<double> _scaleValues = [0, 10, 25, 50, 100, 250, 500];
+
+/// Convert a speed value to a 0..1 fraction using logarithmic scale
+double _speedToFraction(double speed, double maxSpeed) {
+  if (speed <= 0) return 0;
+  if (speed >= maxSpeed) return 1;
+  return log(1 + speed) / log(1 + maxSpeed);
+}
+
 class SpeedGauge extends StatefulWidget {
   final double speed; // Current speed in Mbps
   final double maxSpeed; // Maximum scale value
@@ -22,9 +32,6 @@ class _SpeedGaugeState extends State<SpeedGauge> with SingleTickerProviderStateM
   late AnimationController _controller;
   late Animation<double> _speedAnimation;
   double _previousSpeed = 0;
-
-  // Scale markings with logarithmic positions
-  static const List<double> scaleValues = [0, 10, 25, 50, 100, 250, 500];
 
   @override
   void initState() {
@@ -57,14 +64,6 @@ class _SpeedGaugeState extends State<SpeedGauge> with SingleTickerProviderStateM
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  /// Convert a speed value to a 0..1 fraction using logarithmic scale
-  static double speedToFraction(double speed, double maxSpeed) {
-    if (speed <= 0) return 0;
-    if (speed >= maxSpeed) return 1;
-    // Use log scale: fraction = log(1 + speed) / log(1 + maxSpeed)
-    return log(1 + speed) / log(1 + maxSpeed);
   }
 
   @override
@@ -173,8 +172,8 @@ class _GaugePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    for (final value in SpeedGauge.scaleValues) {
-      final fraction = SpeedGauge.speedToFraction(value, maxSpeed);
+    for (final value in _scaleValues) {
+      final fraction = _speedToFraction(value, maxSpeed);
       final angle = startAngle + sweepAngle * fraction;
       final innerR = radius - 20;
       final outerR = radius - 8;
@@ -220,7 +219,7 @@ class _GaugePainter extends CustomPainter {
   void _drawSpeedArc(Canvas canvas, Offset center, double radius) {
     if (speed <= 0) return;
 
-    final fraction = SpeedGauge.speedToFraction(speed, maxSpeed);
+    final fraction = _speedToFraction(speed, maxSpeed);
     final currentSweep = sweepAngle * fraction;
 
     // Gradient arc

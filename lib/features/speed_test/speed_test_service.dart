@@ -93,7 +93,6 @@ class SpeedTestService {
           '${server.baseUrl}/',
           options: Options(
             receiveTimeout: const Duration(seconds: 3),
-            connectTimeout: const Duration(seconds: 3),
           ),
         );
         stopwatch.stop();
@@ -127,7 +126,6 @@ class SpeedTestService {
           cancelToken: _cancelToken,
           options: Options(
             receiveTimeout: const Duration(seconds: 5),
-            connectTimeout: const Duration(seconds: 5),
           ),
         );
         stopwatch.stop();
@@ -307,7 +305,6 @@ class SpeedTestService {
         'http://ip-api.com/json/',
         options: Options(
           receiveTimeout: const Duration(seconds: 5),
-          connectTimeout: const Duration(seconds: 5),
         ),
       );
       final data = response.data;
