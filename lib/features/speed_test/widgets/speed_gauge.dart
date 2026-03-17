@@ -16,12 +16,14 @@ class SpeedGauge extends StatefulWidget {
   final double speed; // Current speed in Mbps
   final double maxSpeed; // Maximum scale value
   final bool isActive;
+  final double size; // Widget size (width and height)
 
   const SpeedGauge({
     super.key,
     required this.speed,
     this.maxSpeed = 500,
     this.isActive = false,
+    this.size = 260,
   });
 
   @override
@@ -74,9 +76,10 @@ class _SpeedGaugeState extends State<SpeedGauge> with SingleTickerProviderStateM
       animation: _speedAnimation,
       builder: (context, child) {
         final currentSpeed = _speedAnimation.value;
+        final scaleFactor = widget.size / 260;
         return SizedBox(
-          width: 260,
-          height: 260,
+          width: widget.size,
+          height: widget.size,
           child: CustomPaint(
             painter: _GaugePainter(
               speed: currentSpeed,
@@ -94,17 +97,17 @@ class _SpeedGaugeState extends State<SpeedGauge> with SingleTickerProviderStateM
                   Text(
                     currentSpeed > 0 ? currentSpeed.toStringAsFixed(1) : '0',
                     style: TextStyle(
-                      fontSize: 48,
+                      fontSize: 48 * scaleFactor,
                       fontWeight: FontWeight.w300,
                       color: theme.colorScheme.onSurface,
                       height: 1,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4 * scaleFactor),
                   Text(
                     'Mbps',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 14 * scaleFactor,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
