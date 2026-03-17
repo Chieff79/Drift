@@ -11,6 +11,8 @@ class SpeedTestPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final state = ref.watch(speedTestNotifierProvider);
+    final isRunning = state.phase != SpeedTestPhase.idle &&
+        state.phase != SpeedTestPhase.complete;
 
     return Scaffold(
       appBar: AppBar(
@@ -37,31 +39,43 @@ class SpeedTestPage extends HookConsumerWidget {
                 constraints: const BoxConstraints(maxWidth: 500),
                 child: Column(
                   children: [
+                    const Gap(12),
+                    // Mode selector
+                    _ModeSelector(
+                      mode: state.mode,
+                      enabled: !isRunning,
+                      onChanged: (mode) {
+                        ref.read(speedTestNotifierProvider.notifier).setMode(mode);
+                      },
+                    ),
                     const Gap(16),
                     // Phase indicator
-                    _PhaseIndicator(phase: state.phase),
-                    const Gap(24),
+                    _PhaseIndicator(phase: state.phase, mode: state.mode),
+                    const Gap(20),
                     // Gauge
                     SpeedGauge(
                       speed: _gaugeSpeed(state),
-                      isActive: state.phase != SpeedTestPhase.idle &&
-                          state.phase != SpeedTestPhase.complete,
+                      isActive: isRunning,
                     ),
-                    const Gap(24),
+                    const Gap(20),
                     // Start / Cancel button
                     _ActionButton(
                       phase: state.phase,
-                      onStart: () => ref.read(speedTestNotifierProvider.notifier).startTest(),
-                      onCancel: () => ref.read(speedTestNotifierProvider.notifier).cancelTest(),
-                      onReset: () => ref.read(speedTestNotifierProvider.notifier).reset(),
+                      onStart: () => ref
+                          .read(speedTestNotifierProvider.notifier)
+                          .startTest(state.mode),
+                      onCancel: () => ref
+                          .read(speedTestNotifierProvider.notifier)
+                          .cancelTest(),
                     ),
-                    const Gap(24),
-                    // Results grid
-                    if (state.phase == SpeedTestPhase.complete || _hasPartialResults(state))
+                    const Gap(20),
+                    // Results grid for current mode
+                    if (state.phase == SpeedTestPhase.complete ||
+                        _hasPartialResults(state))
                       _ResultsGrid(state: state),
                     // Error
                     if (state.error != null) ...[
-                      const Gap(16),
+                      const Gap(12),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -70,22 +84,30 @@ class SpeedTestPage extends HookConsumerWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline, color: theme.colorScheme.error, size: 20),
+                            Icon(Icons.error_outline,
+                                color: theme.colorScheme.error, size: 20),
                             const Gap(8),
                             Expanded(
                               child: Text(
                                 state.error!,
-                                style: TextStyle(color: theme.colorScheme.onErrorContainer, fontSize: 13),
+                                style: TextStyle(
+                                    color: theme.colorScheme.onErrorContainer,
+                                    fontSize: 13),
                               ),
                             ),
                           ],
                         ),
                       ),
                     ],
-                    const Gap(16),
+                    const Gap(12),
                     // Server info
                     if (state.serverCity != null || state.userCity != null)
                       _ServerInfoCards(state: state),
+                    // Comparison view
+                    if (state.hasBothResults) ...[
+                      const Gap(20),
+                      _ComparisonView(state: state),
+                    ],
                     const Gap(32),
                   ],
                 ),
@@ -101,9 +123,7 @@ class SpeedTestPage extends HookConsumerWidget {
     switch (state.phase) {
       case SpeedTestPhase.ping:
       case SpeedTestPhase.selectingServer:
-        return state.currentSpeed;
       case SpeedTestPhase.download:
-        return state.currentSpeed;
       case SpeedTestPhase.upload:
         return state.currentSpeed;
       case SpeedTestPhase.complete:
@@ -118,10 +138,52 @@ class SpeedTestPage extends HookConsumerWidget {
   }
 }
 
+class _ModeSelector extends StatelessWidget {
+  final SpeedTestMode mode;
+  final bool enabled;
+  final ValueChanged<SpeedTestMode> onChanged;
+
+  const _ModeSelector({
+    required this.mode,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SegmentedButton<SpeedTestMode>(
+      segments: [
+        ButtonSegment<SpeedTestMode>(
+          value: SpeedTestMode.beforeVpn,
+          icon: Icon(Icons.signal_wifi_off_rounded, size: 16),
+          label: Text('Without VPN', style: TextStyle(fontSize: 12)),
+        ),
+        ButtonSegment<SpeedTestMode>(
+          value: SpeedTestMode.afterVpn,
+          icon: Icon(Icons.vpn_lock_rounded, size: 16),
+          label: Text('With VPN', style: TextStyle(fontSize: 12)),
+        ),
+      ],
+      selected: {mode},
+      onSelectionChanged: enabled
+          ? (selected) => onChanged(selected.first)
+          : null,
+      style: SegmentedButton.styleFrom(
+        selectedForegroundColor: theme.colorScheme.onPrimary,
+        selectedBackgroundColor: theme.colorScheme.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
+
 class _PhaseIndicator extends StatelessWidget {
   final SpeedTestPhase phase;
+  final SpeedTestMode mode;
 
-  const _PhaseIndicator({required this.phase});
+  const _PhaseIndicator({required this.phase, required this.mode});
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +192,9 @@ class _PhaseIndicator extends StatelessWidget {
     String label;
     switch (phase) {
       case SpeedTestPhase.idle:
-        label = 'Ready to test';
+        label = mode == SpeedTestMode.beforeVpn
+            ? 'Test without VPN'
+            : 'Test with VPN';
       case SpeedTestPhase.selectingServer:
         label = 'Selecting server...';
       case SpeedTestPhase.ping:
@@ -143,7 +207,8 @@ class _PhaseIndicator extends StatelessWidget {
         label = 'Test complete';
     }
 
-    final isRunning = phase != SpeedTestPhase.idle && phase != SpeedTestPhase.complete;
+    final isRunning =
+        phase != SpeedTestPhase.idle && phase != SpeedTestPhase.complete;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -177,19 +242,18 @@ class _ActionButton extends StatelessWidget {
   final SpeedTestPhase phase;
   final VoidCallback onStart;
   final VoidCallback onCancel;
-  final VoidCallback onReset;
 
   const _ActionButton({
     required this.phase,
     required this.onStart,
     required this.onCancel,
-    required this.onReset,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isRunning = phase != SpeedTestPhase.idle && phase != SpeedTestPhase.complete;
+    final isRunning =
+        phase != SpeedTestPhase.idle && phase != SpeedTestPhase.complete;
 
     if (isRunning) {
       return OutlinedButton.icon(
@@ -198,9 +262,11 @@ class _ActionButton extends StatelessWidget {
         label: const Text('Cancel'),
         style: OutlinedButton.styleFrom(
           foregroundColor: theme.colorScheme.error,
-          side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.5)),
+          side: BorderSide(
+              color: theme.colorScheme.error.withValues(alpha: 0.5)),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
       );
     }
@@ -212,12 +278,13 @@ class _ActionButton extends StatelessWidget {
         label: const Text('Test Again'),
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
       );
     }
 
-    // Idle - show START button
+    // Idle — show START button
     return SizedBox(
       width: 120,
       height: 120,
@@ -259,7 +326,9 @@ class _ResultsGrid extends StatelessWidget {
           child: _ResultTile(
             icon: Icons.download_rounded,
             label: 'Download',
-            value: state.downloadSpeed > 0 ? state.downloadSpeed.toStringAsFixed(1) : '--',
+            value: state.downloadSpeed > 0
+                ? state.downloadSpeed.toStringAsFixed(1)
+                : '--',
             unit: 'Mbps',
             color: const Color(0xFF4FC3F7),
           ),
@@ -269,7 +338,9 @@ class _ResultsGrid extends StatelessWidget {
           child: _ResultTile(
             icon: Icons.upload_rounded,
             label: 'Upload',
-            value: state.uploadSpeed > 0 ? state.uploadSpeed.toStringAsFixed(1) : '--',
+            value: state.uploadSpeed > 0
+                ? state.uploadSpeed.toStringAsFixed(1)
+                : '--',
             unit: 'Mbps',
             color: const Color(0xFFAB47BC),
           ),
@@ -279,7 +350,8 @@ class _ResultsGrid extends StatelessWidget {
           child: _ResultTile(
             icon: Icons.network_ping_rounded,
             label: 'Ping',
-            value: state.ping > 0 ? state.ping.toStringAsFixed(0) : '--',
+            value:
+                state.ping > 0 ? state.ping.toStringAsFixed(0) : '--',
             unit: 'ms',
             color: const Color(0xFF66BB6A),
           ),
@@ -289,7 +361,9 @@ class _ResultsGrid extends StatelessWidget {
           child: _ResultTile(
             icon: Icons.swap_vert_rounded,
             label: 'Jitter',
-            value: state.jitter > 0 ? state.jitter.toStringAsFixed(1) : '--',
+            value: state.jitter > 0
+                ? state.jitter.toStringAsFixed(1)
+                : '--',
             unit: 'ms',
             color: const Color(0xFFFFB74D),
           ),
@@ -364,8 +438,6 @@ class _ServerInfoCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Row(
       children: [
         if (state.userCity != null || state.userCountry != null)
@@ -377,7 +449,7 @@ class _ServerInfoCards extends StatelessWidget {
                 if (state.userCity != null) state.userCity!,
                 if (state.userCountry != null) state.userCountry!,
               ].join(', '),
-              color: theme.colorScheme.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         if (state.userCity != null && state.serverCity != null) const Gap(12),
@@ -390,7 +462,7 @@ class _ServerInfoCards extends StatelessWidget {
                 if (state.serverCity != null) state.serverCity!,
                 if (state.serverCountry != null) state.serverCountry!,
               ].join(', '),
-              color: theme.colorScheme.secondary,
+              color: Theme.of(context).colorScheme.secondary,
             ),
           ),
       ],
@@ -440,7 +512,8 @@ class _InfoCard extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: 10,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    color:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
                 Text(
@@ -452,6 +525,169 @@ class _InfoCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ComparisonView extends StatelessWidget {
+  final SpeedTestState state;
+
+  const _ComparisonView({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.compare_arrows_rounded,
+                  size: 18, color: theme.colorScheme.primary),
+              const Gap(8),
+              Text(
+                'Comparison',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const Gap(12),
+          // Header
+          Row(
+            children: [
+              const Expanded(flex: 2, child: SizedBox()),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'Without VPN',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'With VPN',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Gap(8),
+          _ComparisonRow(
+            label: 'Download',
+            before: '${state.beforeDownload?.toStringAsFixed(1) ?? "--"} Mbps',
+            after: '${state.afterDownload?.toStringAsFixed(1) ?? "--"} Mbps',
+            theme: theme,
+          ),
+          const Gap(6),
+          _ComparisonRow(
+            label: 'Upload',
+            before: '${state.beforeUpload?.toStringAsFixed(1) ?? "--"} Mbps',
+            after: '${state.afterUpload?.toStringAsFixed(1) ?? "--"} Mbps',
+            theme: theme,
+          ),
+          const Gap(6),
+          _ComparisonRow(
+            label: 'Ping',
+            before: '${state.beforePing?.toStringAsFixed(0) ?? "--"} ms',
+            after: '${state.afterPing?.toStringAsFixed(0) ?? "--"} ms',
+            theme: theme,
+          ),
+          const Gap(6),
+          _ComparisonRow(
+            label: 'Jitter',
+            before: '${state.beforeJitter?.toStringAsFixed(1) ?? "--"} ms',
+            after: '${state.afterJitter?.toStringAsFixed(1) ?? "--"} ms',
+            theme: theme,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ComparisonRow extends StatelessWidget {
+  final String label;
+  final String before;
+  final String after;
+  final ThemeData theme;
+
+  const _ComparisonRow({
+    required this.label,
+    required this.before,
+    required this.after,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              before,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              after,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
             ),
           ),
         ],

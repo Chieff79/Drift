@@ -1,7 +1,7 @@
 name: hiddify
 description: Drift — Fast & Secure VPN for iOS & Android.
 publish_to: "none"
-version: 4.1.2+40107
+version: 4.1.2+40108
 
 environment:
   sdk: ^3.10.4

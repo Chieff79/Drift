@@ -22,28 +22,6 @@ class SpeedTestServer {
   String get baseUrl => 'http://$host:$port';
 }
 
-class SpeedTestResult {
-  final double downloadSpeed; // Mbps
-  final double uploadSpeed; // Mbps
-  final double ping; // ms
-  final double jitter; // ms
-  final String? userCity;
-  final String? userCountry;
-  final String serverCity;
-  final String serverCountry;
-
-  const SpeedTestResult({
-    required this.downloadSpeed,
-    required this.uploadSpeed,
-    required this.ping,
-    required this.jitter,
-    this.userCity,
-    this.userCountry,
-    required this.serverCity,
-    required this.serverCountry,
-  });
-}
-
 class SpeedTestService {
   static const List<SpeedTestServer> servers = [
     SpeedTestServer(host: '217.144.184.135', port: 8880, city: 'Ufa', country: 'Russia'),
@@ -51,24 +29,30 @@ class SpeedTestService {
     SpeedTestServer(host: '62.60.235.92', port: 8880, city: 'Amsterdam', country: 'Netherlands'),
   ];
 
+  static const int _parallelStreams = 4;
+
   late final Dio _dio;
   CancelToken? _cancelToken;
+  final bool useDirectConnection;
 
-  SpeedTestService() {
+  SpeedTestService({this.useDirectConnection = true}) {
     _dio = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
-        sendTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60),
+        sendTimeout: const Duration(seconds: 60),
       ),
     );
-    _dio.httpClientAdapter = IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient();
-        client.findProxy = (_) => 'DIRECT';
-        return client;
-      },
-    );
+    if (useDirectConnection) {
+      _dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () {
+          final client = HttpClient();
+          client.findProxy = (_) => 'DIRECT';
+          return client;
+        },
+      );
+    }
+    // When useDirectConnection is false, use default adapter (goes through VPN)
   }
 
   void cancel() {
@@ -135,7 +119,6 @@ class SpeedTestService {
         if (e is DioException && e.type == DioExceptionType.cancel) rethrow;
         // Skip failed pings
       }
-      // Small delay between pings
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
@@ -159,142 +142,190 @@ class SpeedTestService {
     return (ping: median, jitter: jitter);
   }
 
-  /// Measure download speed in Mbps
+  /// Measure download speed in Mbps using parallel streams
   Future<double> measureDownloadSpeed(
     SpeedTestServer server, {
-    Duration duration = const Duration(seconds: 5),
+    Duration duration = const Duration(seconds: 10),
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
     _cancelToken = CancelToken();
     final stopwatch = Stopwatch()..start();
     int totalBytes = 0;
     double lastSpeed = 0;
+    final completer = Completer<double>();
 
+    // Progress reporting timer
+    Timer? progressTimer;
+    progressTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (stopwatch.elapsedMilliseconds > 0) {
+        lastSpeed = (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000);
+        onProgress?.call(lastSpeed);
+      }
+      if (stopwatch.elapsed >= duration && !completer.isCompleted) {
+        _cancelToken?.cancel('Duration reached');
+      }
+    });
+
+    int streamsCompleted = 0;
+
+    void _onStreamFinished() {
+      streamsCompleted++;
+      if (streamsCompleted >= _parallelStreams && !completer.isCompleted) {
+        progressTimer?.cancel();
+        stopwatch.stop();
+        final speed = stopwatch.elapsedMilliseconds > 0
+            ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
+            : 0.0;
+        completer.complete(speed);
+      }
+    }
+
+    // Launch parallel download streams
+    for (int i = 0; i < _parallelStreams; i++) {
+      _launchDownloadStream(server, duration, stopwatch, (bytes) {
+        totalBytes += bytes;
+      }).then((_) {
+        _onStreamFinished();
+      }).catchError((_) {
+        _onStreamFinished();
+      });
+    }
+
+    return await completer.future;
+  }
+
+  Future<void> _launchDownloadStream(
+    SpeedTestServer server,
+    Duration duration,
+    Stopwatch stopwatch,
+    void Function(int bytes) onData,
+  ) async {
     try {
-      // Use ckSize=100 for 100MB payload
       final response = await _dio.get<ResponseBody>(
         '${server.baseUrl}/garbage?ckSize=100',
         cancelToken: _cancelToken,
         options: Options(
           responseType: ResponseType.stream,
-          receiveTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 60),
         ),
       );
 
       final stream = response.data!.stream;
-      final completer = Completer<double>();
-
-      Timer? progressTimer;
-      progressTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
-        if (stopwatch.elapsedMilliseconds > 0) {
-          lastSpeed = (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000); // Mbps
-          onProgress?.call(lastSpeed);
-        }
-        if (stopwatch.elapsed >= duration) {
-          _cancelToken?.cancel('Duration reached');
-        }
-      });
+      final streamCompleter = Completer<void>();
 
       StreamSubscription<List<int>>? subscription;
       subscription = stream.listen(
         (chunk) {
-          totalBytes += chunk.length;
+          onData(chunk.length);
           if (stopwatch.elapsed >= duration) {
             subscription?.cancel();
+            if (!streamCompleter.isCompleted) streamCompleter.complete();
           }
         },
         onDone: () {
-          progressTimer?.cancel();
-          stopwatch.stop();
-          if (!completer.isCompleted) {
-            final speed = stopwatch.elapsedMilliseconds > 0
-                ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
-                : 0.0;
-            completer.complete(speed);
-          }
+          if (!streamCompleter.isCompleted) streamCompleter.complete();
         },
-        onError: (e) {
-          progressTimer?.cancel();
-          stopwatch.stop();
-          if (!completer.isCompleted) {
-            // If cancelled due to duration, return what we have
-            final speed = stopwatch.elapsedMilliseconds > 0
-                ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
-                : 0.0;
-            completer.complete(speed);
-          }
+        onError: (_) {
+          if (!streamCompleter.isCompleted) streamCompleter.complete();
         },
         cancelOnError: false,
       );
 
-      return await completer.future;
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.cancel && totalBytes > 0) {
-        stopwatch.stop();
-        return stopwatch.elapsedMilliseconds > 0
-            ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
-            : 0.0;
-      }
-      return lastSpeed;
+      await streamCompleter.future;
+    } on DioException {
+      // Stream cancelled or failed — expected when duration reached
     }
   }
 
-  /// Measure upload speed in Mbps
+  /// Measure upload speed in Mbps using parallel streams
   Future<double> measureUploadSpeed(
     SpeedTestServer server, {
-    Duration duration = const Duration(seconds: 5),
+    Duration duration = const Duration(seconds: 10),
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
     _cancelToken = CancelToken();
+    // Pre-generate upload data once (4MB)
+    const chunkSize = 4 * 1024 * 1024;
     final random = Random();
-    // Generate random upload data (2MB chunks)
-    const chunkSize = 2 * 1024 * 1024;
+    final uploadData = Uint8List(chunkSize);
+    for (int i = 0; i < chunkSize; i++) {
+      uploadData[i] = random.nextInt(256);
+    }
 
     final stopwatch = Stopwatch()..start();
     int totalBytes = 0;
     double lastSpeed = 0;
 
+    // Progress reporting timer
+    Timer? progressTimer;
+    progressTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (stopwatch.elapsedMilliseconds > 0) {
+        lastSpeed = (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000);
+        onProgress?.call(lastSpeed);
+      }
+    });
+
+    final completer = Completer<double>();
+    int streamsCompleted = 0;
+
+    void _onStreamFinished() {
+      streamsCompleted++;
+      if (streamsCompleted >= _parallelStreams && !completer.isCompleted) {
+        progressTimer?.cancel();
+        stopwatch.stop();
+        final speed = stopwatch.elapsedMilliseconds > 0
+            ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
+            : 0.0;
+        completer.complete(speed);
+      }
+    }
+
+    // Launch parallel upload streams
+    for (int i = 0; i < _parallelStreams; i++) {
+      _launchUploadStream(server, duration, stopwatch, uploadData, chunkSize, (bytes) {
+        totalBytes += bytes;
+      }).then((_) {
+        _onStreamFinished();
+      }).catchError((_) {
+        _onStreamFinished();
+      });
+    }
+
+    return await completer.future;
+  }
+
+  Future<void> _launchUploadStream(
+    SpeedTestServer server,
+    Duration duration,
+    Stopwatch stopwatch,
+    Uint8List uploadData,
+    int chunkSize,
+    void Function(int bytes) onData,
+  ) async {
     try {
       while (stopwatch.elapsed < duration) {
         if (_cancelToken?.isCancelled ?? false) break;
 
-        final data = Uint8List(chunkSize);
-        for (int i = 0; i < chunkSize; i++) {
-          data[i] = random.nextInt(256);
-        }
-
         try {
           await _dio.post(
             '${server.baseUrl}/empty',
-            data: Stream.fromIterable([data]),
+            data: uploadData,
             cancelToken: _cancelToken,
             options: Options(
               contentType: 'application/octet-stream',
               headers: {'Content-Length': chunkSize},
-              sendTimeout: const Duration(seconds: 10),
+              sendTimeout: const Duration(seconds: 30),
               receiveTimeout: const Duration(seconds: 10),
             ),
           );
-          totalBytes += chunkSize;
+          onData(chunkSize);
         } on DioException catch (e) {
           if (e.type == DioExceptionType.cancel) break;
-          // Server may reject large uploads; continue with what we have
           break;
         }
-
-        if (stopwatch.elapsedMilliseconds > 0) {
-          lastSpeed = (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000);
-          onProgress?.call(lastSpeed);
-        }
       }
-
-      stopwatch.stop();
-      return stopwatch.elapsedMilliseconds > 0
-          ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
-          : 0.0;
-    } on DioException {
-      stopwatch.stop();
-      return lastSpeed;
+    } catch (_) {
+      // Stream finished
     }
   }
 
