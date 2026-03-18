@@ -71,7 +71,10 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
 
   SpeedTestService? _service;
 
-  Future<void> startTest() async {
+  /// Start the speed test.
+  /// [vpnServerIp] — if VPN is connected, pass the connected server's IP.
+  /// When null, tests against the Russian server (domestic traffic).
+  Future<void> startTest({String? vpnServerIp}) async {
     if (state.phase != SpeedTestPhase.idle && state.phase != SpeedTestPhase.complete) {
       return;
     }
@@ -85,8 +88,8 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
       // Get user location in parallel with server selection
       final locationFuture = _service!.getUserLocation();
 
-      // Select best server
-      final server = await _service!.selectBestServer();
+      // Select server based on VPN state
+      final server = _service!.selectServer(vpnServerIp: vpnServerIp);
       state = state.copyWith(
         serverCity: server.city,
         serverCountry: server.country,
@@ -126,6 +129,7 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
         },
       );
 
+      // Store exact value
       state = state.copyWith(downloadSpeed: dlSpeed, progress: 1.0);
 
       // Upload phase
@@ -141,6 +145,7 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
         },
       );
 
+      // Store exact value
       state = state.copyWith(
         uploadSpeed: ulSpeed,
         progress: 1.0,

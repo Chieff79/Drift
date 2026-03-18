@@ -9,7 +9,6 @@ import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_card.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_delay_indicator.dart';
-import 'package:hiddify/features/speed_test/widgets/home_speed_test_widget.dart';
 import 'package:hiddify/gen/assets.gen.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sliver_tools/sliver_tools.dart';
@@ -97,24 +96,11 @@ class HomePage extends HookConsumerWidget {
                         SliverFillRemaining(
                           hasScrollBody: false,
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // TOP: Speed test section
-                              const Padding(
-                                padding: EdgeInsets.only(top: 8),
-                                child: HomeSpeedTestWidget(),
-                              ),
-                              // BOTTOM: VPN connection section
-                              Expanded(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const ConnectionButton(),
-                                    const ActiveProxyDelayIndicator(),
-                                  ],
-                                ),
-                              ),
+                              const ConnectionButton(),
+                              const ActiveProxyDelayIndicator(),
+                              const Gap(16),
                               const ActiveProxyFooter(),
                             ],
                           ),

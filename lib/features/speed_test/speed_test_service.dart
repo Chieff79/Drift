@@ -22,9 +22,14 @@ class SpeedTestServer {
   String get baseUrl => 'http://$host:$port';
 }
 
-/// Format speed value for display per spec:
-/// >= 10 Mbps: integer ("317"), >= 1 Mbps: one decimal ("5.2"), < 1 Mbps: two decimals ("0.85")
+/// Format speed value for display: always 2 decimal places for final values
 String formatSpeed(double speed) {
+  if (speed <= 0) return '--';
+  return speed.toStringAsFixed(2);
+}
+
+/// Format speed during live test (less precise)
+String formatSpeedLive(double speed) {
   if (speed <= 0) return '--';
   if (speed >= 10) return speed.toStringAsFixed(0);
   if (speed >= 1) return speed.toStringAsFixed(1);
@@ -32,8 +37,19 @@ String formatSpeed(double speed) {
 }
 
 class SpeedTestService {
-  static const List<SpeedTestServer> servers = [
-    SpeedTestServer(host: '217.144.184.135', port: 8880, city: 'Москва', country: 'Russia'),
+  /// Russian server — used when VPN is OFF (domestic traffic, fast)
+  static const SpeedTestServer russianServer =
+      SpeedTestServer(host: '217.144.184.135', port: 8880, city: 'Москва', country: 'Russia');
+
+  /// Map of VPN server IPs to their SpeedTestServer definitions
+  static const Map<String, SpeedTestServer> vpnServers = {
+    '213.165.50.230': SpeedTestServer(host: '213.165.50.230', port: 8880, city: 'Нью-Йорк', country: 'USA'),
+    '62.60.235.92': SpeedTestServer(host: '62.60.235.92', port: 8880, city: 'Амстердам', country: 'Netherlands'),
+    '217.144.184.135': SpeedTestServer(host: '217.144.184.135', port: 8880, city: 'Москва', country: 'Russia'),
+  };
+
+  static const List<SpeedTestServer> allServers = [
+    russianServer,
     SpeedTestServer(host: '213.165.50.230', port: 8880, city: 'Нью-Йорк', country: 'USA'),
     SpeedTestServer(host: '62.60.235.92', port: 8880, city: 'Амстердам', country: 'Netherlands'),
   ];
@@ -72,37 +88,15 @@ class SpeedTestService {
     _dio.close();
   }
 
-  /// Pick the server with the lowest ping (parallel)
-  Future<SpeedTestServer> selectBestServer() async {
-    _cancelToken = CancelToken();
-    SpeedTestServer? best;
-    double bestPing = double.infinity;
-
-    // Ping all servers in parallel
-    final futures = servers.map((server) async {
-      try {
-        final stopwatch = Stopwatch()..start();
-        await _dio.get(
-          '${server.baseUrl}/empty',
-          cancelToken: _cancelToken,
-          options: Options(receiveTimeout: const Duration(seconds: 3)),
-        );
-        stopwatch.stop();
-        return (server: server, rtt: stopwatch.elapsedMilliseconds.toDouble());
-      } catch (_) {
-        return (server: server, rtt: double.infinity);
-      }
-    });
-
-    final results = await Future.wait(futures);
-    for (final r in results) {
-      if (r.rtt < bestPing) {
-        bestPing = r.rtt;
-        best = r.server;
-      }
+  /// Select the appropriate server based on VPN state.
+  /// If [vpnServerIp] is provided (VPN is ON), use that server.
+  /// Otherwise, use the Russian server (domestic, fast).
+  SpeedTestServer selectServer({String? vpnServerIp}) {
+    if (vpnServerIp != null && vpnServers.containsKey(vpnServerIp)) {
+      return vpnServers[vpnServerIp]!;
     }
-
-    return best ?? servers.first;
+    // Default: Russian server for domestic speed test
+    return russianServer;
   }
 
   /// Measure ping (median) and jitter (mean consecutive difference)
@@ -149,7 +143,7 @@ class SpeedTestService {
     return (ping: median, jitter: jitter);
   }
 
-  /// Measure download speed using MULTIPLE parallel streams (6-8 connections)
+  /// Measure download speed using MULTIPLE parallel streams (8 connections)
   Future<double> measureDownloadSpeed(
     SpeedTestServer server, {
     Duration duration = const Duration(seconds: 10),
@@ -219,7 +213,7 @@ class SpeedTestService {
     return await completer.future;
   }
 
-  /// Measure upload speed using MULTIPLE parallel streams (4-6 connections)
+  /// Measure upload speed using MULTIPLE parallel streams (6 connections)
   Future<double> measureUploadSpeed(
     SpeedTestServer server, {
     Duration duration = const Duration(seconds: 10),
@@ -254,7 +248,7 @@ class SpeedTestService {
           try {
             await _dio.post(
               '${server.baseUrl}/empty',
-              data: Stream.fromIterable([uploadData]),
+              data: uploadData, // Send Uint8List directly — fixes upload
               cancelToken: _cancelToken,
               options: Options(
                 contentType: 'application/octet-stream',

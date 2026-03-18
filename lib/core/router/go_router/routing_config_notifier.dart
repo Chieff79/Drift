@@ -8,6 +8,7 @@ import 'package:hiddify/core/router/go_router/helper/custom_transition.dart';
 import 'package:hiddify/core/router/go_router/refresh_listenable.dart';
 import 'package:hiddify/features/about/widget/about_page.dart';
 import 'package:hiddify/features/home/widget/home_page.dart';
+import 'package:hiddify/features/speed_test/speed_test_page.dart';
 
 import 'package:hiddify/features/intro/widget/intro_page.dart';
 import 'package:hiddify/features/log/overview/logs_page.dart';
@@ -30,6 +31,7 @@ part 'routing_config_notifier.g.dart';
 
 // each branch in go router has its own focus scope
 final branchesScope = <String, FocusScopeNode>{
+  'speedtest': FocusScopeNode(),
   'home': FocusScopeNode(),
   'profiles': FocusScopeNode(),
   'settings': FocusScopeNode(),
@@ -39,16 +41,17 @@ final branchesScope = <String, FocusScopeNode>{
 
 // when the routing config is not yet initialized, this config is used
 final loadingConfig = RoutingConfig(
-  routes: <RouteBase>[GoRoute(path: '/home', builder: (context, state) => const Material())],
+  routes: <RouteBase>[GoRoute(path: '/speedtest', builder: (context, state) => const Material())],
 );
 
 String getNameOfBranch(bool isMobileBreakpoint, bool showProfilesAction, int index) => isMobileBreakpoint
-    ? ['home', 'settings'][index]
-    : ['home', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'][index];
+    ? ['speedtest', 'home', 'settings'][index]
+    : ['speedtest', 'home', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'][index];
 
 int getIndexOfBranch(bool isMobileBreakpoint, bool showProfilesAction, String name) => isMobileBreakpoint
-    ? ['home', 'settings'].indexOf(name)
+    ? ['speedtest', 'home', 'settings'].indexOf(name)
     : [
+        'speedtest',
         'home',
         if (showProfilesAction) 'profiles',
         'settings',
@@ -90,12 +93,12 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
             WidgetsBinding.instance.addPostFrameCallback(
               (_) => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(url: url),
             );
-          return '/home';
+          return '/speedtest';
         } else if (url != null) {
           WidgetsBinding.instance.addPostFrameCallback(
             (_) => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(url: url),
           );
-          return '/home';
+          return '/speedtest';
         }
         return null;
       },
@@ -107,6 +110,17 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
             showProfilesAction: showProfilesAction,
           ),
           branches: <StatefulShellBranch>[
+            // Tab 1: Speed Test (DEFAULT)
+            StatefulShellBranch(
+              routes: <GoRoute>[
+                GoRoute(
+                  name: 'speedtest',
+                  path: '/speedtest',
+                  builder: (_, _) => FocusScope(node: branchesScope['speedtest'], child: const SpeedTestPage()),
+                ),
+              ],
+            ),
+            // Tab 2: VPN (Home)
             StatefulShellBranch(
               routes: <GoRoute>[
                 GoRoute(
@@ -164,7 +178,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
                     node: branchesScope['settings'],
                     child: PopScope(
                       canPop: false,
-                      onPopInvokedWithResult: (_, _) => context.goNamed('home'),
+                      onPopInvokedWithResult: (_, _) => context.goNamed('speedtest'),
                       child: SettingsPage(),
                     ),
                   ),
