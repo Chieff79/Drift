@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
-import 'package:hiddify/utils/platform_utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ProxyInfoDialog extends HookConsumerWidget {
   const ProxyInfoDialog({super.key, required this.outboundInfo});
@@ -118,21 +116,6 @@ class OutboundInfoWidget extends HookConsumerWidget {
         _buildInfoRow(t.dialogs.proxyInfo.countryCode, ipInfo.countryCode),
         _buildInfoRow(t.dialogs.proxyInfo.region, ipInfo.region), // Handle optional fields
         _buildInfoRow(t.dialogs.proxyInfo.city, ipInfo.city),
-        _buildInfoRow(t.dialogs.proxyInfo.asn, ipInfo.asn.toString()),
-        _buildInfoRow(t.dialogs.proxyInfo.organization, ipInfo.org),
-        // _buildInfoRow(t.outboundInfo.latitude, ipInfo.latitude.toString()),
-        // _buildInfoRow(t.outboundInfo.longitude, ipInfo.longitude.toString()),
-        _buildInfoRow(
-          t.dialogs.proxyInfo.location,
-          "${ipInfo.latitude}, ${ipInfo.longitude}",
-          onTap: () => launchUrl(
-            Uri.parse(
-              !PlatformUtils.isInAppStore
-                  ? 'https://maps.apple.com/?ll=${ipInfo.latitude},${ipInfo.longitude}'
-                  : 'https://www.google.com/maps/@${ipInfo.latitude},${ipInfo.longitude},18z',
-            ),
-          ),
-        ),
         _buildInfoRow(t.dialogs.proxyInfo.postalCode, ipInfo.postalCode),
       ],
     );

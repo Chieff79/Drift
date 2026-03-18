@@ -3,25 +3,6 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
-
-class SpeedTestServer {
-  final String host;
-  final int port;
-  final String city;
-  final String country;
-
-  const SpeedTestServer({
-    required this.host,
-    required this.port,
-    required this.city,
-    required this.country,
-  });
-
-  String get baseUrl => 'http://$host:$port';
-}
-
 /// Format speed value for display: always 2 decimal places for final values
 String formatSpeed(double speed) {
   if (speed <= 0) return '--';
@@ -37,91 +18,67 @@ String formatSpeedLive(double speed) {
 }
 
 class SpeedTestService {
-  /// Russian server — used when VPN is OFF (domestic traffic, fast)
-  static const SpeedTestServer russianServer =
-      SpeedTestServer(host: '217.144.184.135', port: 8880, city: 'Москва', country: 'Russia');
+  /// LibreSpeed fallback server
+  static const String _libreSpeedHost = '217.144.184.135';
+  static const int _libreSpeedPort = 8880;
 
-  /// Map of VPN server IPs to their SpeedTestServer definitions
-  static const Map<String, SpeedTestServer> vpnServers = {
-    '213.165.50.230': SpeedTestServer(host: '213.165.50.230', port: 8880, city: 'Нью-Йорк', country: 'USA'),
-    '217.144.184.135': SpeedTestServer(host: '217.144.184.135', port: 8880, city: 'Москва', country: 'Russia'),
-  };
-
-  static const List<SpeedTestServer> allServers = [
-    russianServer,
-    SpeedTestServer(host: '213.165.50.230', port: 8880, city: 'Нью-Йорк', country: 'USA'),
-  ];
-
-  late final Dio _dio;
-  CancelToken? _cancelToken;
   bool _disposed = false;
+  bool _cancelled = false;
 
-  SpeedTestService() {
-    _dio = Dio(
-      BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 60),
-        sendTimeout: const Duration(seconds: 60),
-      ),
-    );
-    // Force DIRECT connections — bypass any local Hiddify proxy
-    // When VPN is ON, traffic goes through the VPN tunnel at the OS level anyway
-    _dio.httpClientAdapter = IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient();
-        client.findProxy = (_) => 'DIRECT';
-        return client;
-      },
-    );
+  /// Create a fresh HttpClient that bypasses any proxy (including Hiddify)
+  HttpClient _createDirectClient() {
+    final client = HttpClient();
+    client.findProxy = (_) => 'DIRECT';
+    client.badCertificateCallback = (cert, host, port) => true;
+    client.connectionTimeout = const Duration(seconds: 10);
+    return client;
   }
 
   void cancel() {
-    _cancelToken?.cancel('Speed test cancelled');
-    _cancelToken = null;
+    _cancelled = true;
   }
 
   void dispose() {
     _disposed = true;
-    cancel();
-    _dio.close();
+    _cancelled = true;
   }
 
-  /// Select the appropriate server based on VPN state.
-  /// If [vpnServerIp] is provided (VPN is ON), use that server.
-  /// Otherwise, use the Russian server (domestic, fast).
-  SpeedTestServer selectServer({String? vpnServerIp}) {
-    if (vpnServerIp != null && vpnServers.containsKey(vpnServerIp)) {
-      return vpnServers[vpnServerIp]!;
-    }
-    // Default: Russian server for domestic speed test
-    return russianServer;
-  }
-
-  /// Measure ping (median) and jitter (mean consecutive difference)
-  Future<({double ping, double jitter})> measurePing(
-    SpeedTestServer server, {
+  /// Measure ping (median RTT) and jitter using Cloudflare endpoint
+  Future<({double ping, double jitter})> measurePing({
     void Function(double currentPing)? onProgress,
   }) async {
-    _cancelToken = CancelToken();
+    _cancelled = false;
     final rtts = <double>[];
 
+    // Try Cloudflare first
+    var client = _createDirectClient();
+    bool useFallback = false;
+
     for (int i = 0; i < 10; i++) {
-      if (_disposed || (_cancelToken?.isCancelled ?? false)) break;
+      if (_disposed || _cancelled) break;
       try {
-        final stopwatch = Stopwatch()..start();
-        await _dio.get(
-          '${server.baseUrl}/backend/empty.php',
-          cancelToken: _cancelToken,
-          options: Options(receiveTimeout: const Duration(seconds: 5)),
-        );
-        stopwatch.stop();
-        rtts.add(stopwatch.elapsedMilliseconds.toDouble());
+        final sw = Stopwatch()..start();
+        final uri = useFallback
+            ? Uri.parse('http://$_libreSpeedHost:$_libreSpeedPort/backend/empty.php')
+            : Uri.parse('https://speed.cloudflare.com/__down?bytes=0');
+        final request = await client.getUrl(uri);
+        final response = await request.close();
+        await response.drain<void>();
+        sw.stop();
+        rtts.add(sw.elapsedMilliseconds.toDouble());
         onProgress?.call(rtts.last);
-      } catch (e) {
-        if (e is DioException && e.type == DioExceptionType.cancel) rethrow;
+      } catch (_) {
+        // If first Cloudflare attempt fails, switch to fallback
+        if (i == 0 && !useFallback) {
+          useFallback = true;
+          client.close(force: true);
+          client = _createDirectClient();
+        }
       }
       await Future.delayed(const Duration(milliseconds: 100));
     }
+
+    client.close(force: true);
 
     if (rtts.isEmpty) {
       return (ping: 0.0, jitter: 0.0);
@@ -141,159 +98,151 @@ class SpeedTestService {
     return (ping: median, jitter: jitter);
   }
 
-  /// Measure download speed using MULTIPLE parallel streams (8 connections)
-  Future<double> measureDownloadSpeed(
-    SpeedTestServer server, {
+  /// Measure download speed using dart:io HttpClient with Cloudflare CDN
+  /// Falls back to LibreSpeed if Cloudflare fails
+  Future<double> measureDownloadSpeed({
     Duration duration = const Duration(seconds: 10),
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
-    _cancelToken = CancelToken();
-    const int streamCount = 8;
-    final stopwatch = Stopwatch()..start();
+    _cancelled = false;
+    const int streamCount = 6;
     int totalBytes = 0;
-    final completer = Completer<double>();
+    final sw = Stopwatch()..start();
 
-    // Progress reporting timer — fires every 250ms
+    // Try Cloudflare first with a quick probe
+    bool useCloudflare = await _probeCloudflare();
+
+    // Progress reporting timer
     Timer? progressTimer;
     progressTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (stopwatch.elapsedMilliseconds > 0) {
-        final speed = (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000);
+      if (sw.elapsedMilliseconds > 0 && !_cancelled && !_disposed) {
+        final speed = (totalBytes * 8) / (sw.elapsedMilliseconds * 1000);
         onProgress?.call(speed);
       }
-      if (stopwatch.elapsed >= duration) {
-        _cancelToken?.cancel('Duration reached');
+      if (sw.elapsed >= duration || _cancelled || _disposed) {
+        progressTimer?.cancel();
       }
     });
 
     try {
-      // Launch multiple parallel download streams
-      final streamFutures = List.generate(streamCount, (i) async {
-        // Each stream downloads continuously until cancelled
-        while (!_disposed && !(_cancelToken?.isCancelled ?? false) && stopwatch.elapsed < duration) {
-          try {
-            final response = await _dio.get<ResponseBody>(
-              '${server.baseUrl}/backend/garbage.php?ckSize=100',
-              cancelToken: _cancelToken,
-              options: Options(
-                responseType: ResponseType.stream,
-                receiveTimeout: const Duration(seconds: 60),
-              ),
-            );
-
-            final stream = response.data!.stream;
-            await for (final chunk in stream) {
-              totalBytes += chunk.length;
-              if (stopwatch.elapsed >= duration || (_cancelToken?.isCancelled ?? false)) {
-                break;
+      final futures = List.generate(streamCount, (_) async {
+        final client = _createDirectClient();
+        try {
+          while (!_disposed && !_cancelled && sw.elapsed < duration) {
+            try {
+              final uri = useCloudflare
+                  ? Uri.parse('https://speed.cloudflare.com/__down?bytes=10000000')
+                  : Uri.parse('http://$_libreSpeedHost:$_libreSpeedPort/backend/garbage.php?ckSize=100');
+              final request = await client.getUrl(uri);
+              final response = await request.close();
+              await for (final chunk in response) {
+                totalBytes += chunk.length;
+                if (sw.elapsed >= duration || _cancelled || _disposed) break;
               }
+            } catch (_) {
+              // If Cloudflare stream fails mid-test, just break this stream
+              break;
             }
-          } on DioException {
-            // Expected when duration reached or cancelled
-            break;
-          } catch (_) {
-            break;
           }
+        } finally {
+          client.close(force: true);
         }
       });
 
-      await Future.wait(streamFutures);
+      await Future.wait(futures);
     } finally {
       progressTimer?.cancel();
-      stopwatch.stop();
-      if (!completer.isCompleted) {
-        final speed = stopwatch.elapsedMilliseconds > 0
-            ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
-            : 0.0;
-        completer.complete(speed);
-      }
+      sw.stop();
     }
 
-    return await completer.future;
+    return sw.elapsedMilliseconds > 0
+        ? (totalBytes * 8) / (sw.elapsedMilliseconds * 1000)
+        : 0.0;
   }
 
-  /// Measure upload speed using MULTIPLE parallel streams (6 connections)
-  Future<double> measureUploadSpeed(
-    SpeedTestServer server, {
+  /// Measure upload speed using dart:io HttpClient with Cloudflare CDN
+  /// Falls back to LibreSpeed if Cloudflare fails
+  Future<double> measureUploadSpeed({
     Duration duration = const Duration(seconds: 10),
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
-    _cancelToken = CancelToken();
-    const int streamCount = 6;
-    // Pre-generate 10MB of random data (shared across streams)
-    const chunkSize = 10 * 1024 * 1024;
+    _cancelled = false;
+    const int streamCount = 4;
+    // Pre-generate 2MB of random data
+    const chunkSize = 2 * 1024 * 1024;
     final random = Random();
     final uploadData = Uint8List(chunkSize);
     for (int i = 0; i < chunkSize; i++) {
       uploadData[i] = random.nextInt(256);
     }
 
-    final stopwatch = Stopwatch()..start();
     int totalBytes = 0;
+    final sw = Stopwatch()..start();
 
-    // Progress reporting timer — fires every 250ms
+    bool useCloudflare = await _probeCloudflare();
+
+    // Progress reporting timer
     Timer? progressTimer;
     progressTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (stopwatch.elapsedMilliseconds > 0) {
-        final speed = (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000);
+      if (sw.elapsedMilliseconds > 0 && !_cancelled && !_disposed) {
+        final speed = (totalBytes * 8) / (sw.elapsedMilliseconds * 1000);
         onProgress?.call(speed);
+      }
+      if (sw.elapsed >= duration || _cancelled || _disposed) {
+        progressTimer?.cancel();
       }
     });
 
     try {
-      // Launch multiple parallel upload streams
-      final streamFutures = List.generate(streamCount, (i) async {
-        while (!_disposed && !(_cancelToken?.isCancelled ?? false) && stopwatch.elapsed < duration) {
-          try {
-            await _dio.post(
-              '${server.baseUrl}/backend/empty.php',
-              data: uploadData, // Send Uint8List directly — fixes upload
-              cancelToken: _cancelToken,
-              options: Options(
-                contentType: 'application/octet-stream',
-                headers: {'Content-Length': chunkSize},
-                sendTimeout: const Duration(seconds: 30),
-                receiveTimeout: const Duration(seconds: 10),
-              ),
-            );
-            totalBytes += chunkSize;
-          } on DioException catch (e) {
-            if (e.type == DioExceptionType.cancel) break;
-            // On other errors, retry after brief delay
-            await Future.delayed(const Duration(milliseconds: 100));
-          } catch (_) {
-            break;
+      final futures = List.generate(streamCount, (_) async {
+        final client = _createDirectClient();
+        try {
+          while (!_disposed && !_cancelled && sw.elapsed < duration) {
+            try {
+              final uri = useCloudflare
+                  ? Uri.parse('https://speed.cloudflare.com/__up')
+                  : Uri.parse('http://$_libreSpeedHost:$_libreSpeedPort/backend/empty.php');
+              final request = await client.postUrl(uri);
+              request.headers.contentType = ContentType.binary;
+              request.contentLength = uploadData.length;
+              request.add(uploadData);
+              final response = await request.close();
+              await response.drain<void>();
+              totalBytes += uploadData.length;
+            } catch (_) {
+              break;
+            }
           }
+        } finally {
+          client.close(force: true);
         }
       });
 
-      await Future.wait(streamFutures);
+      await Future.wait(futures);
     } finally {
       progressTimer?.cancel();
-      stopwatch.stop();
+      sw.stop();
     }
 
-    return stopwatch.elapsedMilliseconds > 0
-        ? (totalBytes * 8) / (stopwatch.elapsedMilliseconds * 1000)
+    return sw.elapsedMilliseconds > 0
+        ? (totalBytes * 8) / (sw.elapsedMilliseconds * 1000)
         : 0.0;
   }
 
-  /// Get user's geo location using ip-api.com
-  Future<({String? city, String? country})> getUserLocation() async {
+  /// Quick probe to check if Cloudflare is reachable
+  Future<bool> _probeCloudflare() async {
+    final client = _createDirectClient();
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        'http://ip-api.com/json/',
-        options: Options(receiveTimeout: const Duration(seconds: 5)),
-      );
-      final data = response.data;
-      if (data != null && data['status'] == 'success') {
-        return (
-          city: data['city'] as String?,
-          country: data['country'] as String?,
-        );
-      }
+      final request = await client.getUrl(
+        Uri.parse('https://speed.cloudflare.com/__down?bytes=0'),
+      ).timeout(const Duration(seconds: 5));
+      final response = await request.close().timeout(const Duration(seconds: 5));
+      await response.drain<void>();
+      return true;
     } catch (_) {
-      // Geo-location is best-effort
+      return false;
+    } finally {
+      client.close(force: true);
     }
-    return (city: null, country: null);
   }
 }

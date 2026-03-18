@@ -2,9 +2,8 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 
-/// Luxury car-style speedometer inspired by Bentley/Ferrari instrument clusters.
+/// Luxury car-style speedometer inspired by Bentley/Ferrari/BMW instrument clusters.
 /// Uses CustomPainter for all rendering. No text inside the dial — speed display
 /// is handled externally (below the gauge).
 class SpeedGauge extends StatefulWidget {
@@ -29,39 +28,39 @@ class SpeedGauge extends StatefulWidget {
 
 class _SpeedGaugeState extends State<SpeedGauge> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  double _currentSpeed = 0;
-  double _targetSpeed = 0;
-  late SpringSimulation _simulation;
-  double _simStartSpeed = 0;
-
-  static const _spring = SpringDescription(mass: 1.0, stiffness: 120, damping: 14);
+  late Animation<double> _animation;
+  double _currentAnimatedSpeed = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController.unbounded(vsync: this);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _animation = Tween<double>(begin: 0, end: 0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
     _controller.addListener(_onTick);
-    _targetSpeed = widget.speed;
-    _currentSpeed = 0;
+  }
+
+  void _onTick() {
+    setState(() {
+      _currentAnimatedSpeed = _animation.value;
+    });
   }
 
   @override
   void didUpdateWidget(SpeedGauge oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.speed != widget.speed) {
-      _targetSpeed = widget.speed;
-      _simStartSpeed = _currentSpeed;
-      _simulation = SpringSimulation(_spring, 0, 1, 0);
+      final oldValue = _currentAnimatedSpeed;
+      _animation = Tween<double>(begin: oldValue, end: widget.speed).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+      );
       _controller.reset();
-      _controller.animateWith(_simulation);
+      _controller.forward();
     }
-  }
-
-  void _onTick() {
-    setState(() {
-      final t = _controller.value.clamp(0.0, 1.0);
-      _currentSpeed = _simStartSpeed + (_targetSpeed - _simStartSpeed) * t;
-    });
   }
 
   @override
@@ -78,7 +77,7 @@ class _SpeedGaugeState extends State<SpeedGauge> with SingleTickerProviderStateM
       height: widget.size,
       child: CustomPaint(
         painter: _LuxurySpeedometerPainter(
-          speed: _currentSpeed,
+          speed: _currentAnimatedSpeed,
           maxSpeed: widget.maxSpeed,
         ),
       ),
@@ -108,7 +107,7 @@ class _LuxurySpeedometerPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final outerRadius = min(size.width, size.height) / 2;
 
-    _drawBackground(canvas, center, outerRadius, size);
+    _drawBackground(canvas, center, outerRadius);
     _drawChromeRim(canvas, center, outerRadius);
     _drawColorArc(canvas, center, outerRadius * 0.78);
     _drawTicks(canvas, center, outerRadius);
@@ -116,34 +115,25 @@ class _LuxurySpeedometerPainter extends CustomPainter {
     _drawCenterCap(canvas, center);
   }
 
-  void _drawBackground(Canvas canvas, Offset center, double radius, Size size) {
-    // Dark metallic gradient background
+  void _drawBackground(Canvas canvas, Offset center, double radius) {
+    // Deep black with subtle radial gradient
     final bgPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF2A2A2E),
-          const Color(0xFF1A1A1E),
-          const Color(0xFF0F0F12),
+          const Color(0xFF1E1E22),
+          const Color(0xFF141418),
+          const Color(0xFF0A0A0E),
         ],
-        stops: const [0.0, 0.6, 1.0],
+        stops: const [0.0, 0.5, 1.0],
       ).createShader(Rect.fromCircle(center: center, radius: radius));
     canvas.drawCircle(center, radius - 2, bgPaint);
-
-    // Subtle brushed metal texture effect (concentric circles)
-    final texturePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.3
-      ..color = Colors.white.withValues(alpha: 0.03);
-    for (double r = 20; r < radius - 10; r += 4) {
-      canvas.drawCircle(center, r, texturePaint);
-    }
   }
 
   void _drawChromeRim(Canvas canvas, Offset center, double radius) {
-    // Outer chrome ring
+    // Thin chrome/silver outer ring with metallic glow
     final rimPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
+      ..strokeWidth = 3.5
       ..shader = SweepGradient(
         colors: [
           const Color(0xFF888888),
@@ -161,15 +151,15 @@ class _LuxurySpeedometerPainter extends CustomPainter {
     // Subtle glow behind rim
     final glowPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      ..strokeWidth = 6
+      ..color = Colors.white.withValues(alpha: 0.04)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
     canvas.drawCircle(center, radius - 2, glowPaint);
   }
 
   void _drawColorArc(Canvas canvas, Offset center, double radius) {
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final arcWidth = radius * 0.1;
+    final arcWidth = 6.0;
 
     // Background arc (dark track)
     final bgArcPaint = Paint()
@@ -179,36 +169,32 @@ class _LuxurySpeedometerPainter extends CustomPainter {
       ..color = Colors.white.withValues(alpha: 0.06);
     canvas.drawArc(rect, _startAngle, _sweepAngle, false, bgArcPaint);
 
-    // Color zone segments
+    // Color zone segments per spec:
+    // 0-100: Deep blue, 100-300: Teal/Green, 300-500: Amber, 500-750: Deep Orange, 750-1000: Red
     final zones = <_ColorZone>[
-      _ColorZone(0, 100, const Color(0xFF2196F3), const Color(0xFF42A5F5)),    // blue
-      _ColorZone(100, 300, const Color(0xFF4CAF50), const Color(0xFF66BB6A)),   // green
-      _ColorZone(300, 500, const Color(0xFFFFEB3B), const Color(0xFFFFC107)),   // yellow
-      _ColorZone(500, 750, const Color(0xFFFF9800), const Color(0xFFFF5722)),   // orange
-      _ColorZone(750, 1000, const Color(0xFFF44336), const Color(0xFFD32F2F)),  // red
+      _ColorZone(0, 100, const Color(0xFF1E88E5), const Color(0xFF1E88E5)),
+      _ColorZone(100, 300, const Color(0xFF00BFA5), const Color(0xFF00BFA5)),
+      _ColorZone(300, 500, const Color(0xFFFFB300), const Color(0xFFFFB300)),
+      _ColorZone(500, 750, const Color(0xFFFF6D00), const Color(0xFFFF6D00)),
+      _ColorZone(750, 1000, const Color(0xFFD50000), const Color(0xFFD50000)),
     ];
 
     for (final zone in zones) {
       final startFrac = _speedToFraction(zone.start);
       final endFrac = _speedToFraction(zone.end);
       final zoneStartAngle = _startAngle + _sweepAngle * startFrac;
-      final zoneSweepAngle = _sweepAngle * (endFrac - startFrac);
-
-      final zonePaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = arcWidth
-        ..strokeCap = StrokeCap.butt
-        ..shader = SweepGradient(
-          startAngle: zoneStartAngle,
-          endAngle: zoneStartAngle + zoneSweepAngle,
-          colors: [zone.startColor, zone.endColor],
-        ).createShader(rect);
 
       // Only draw up to current speed
       final speedFrac = _speedToFraction(speed);
       if (speedFrac <= startFrac) continue;
       final drawEndFrac = min(speedFrac, endFrac);
       final drawSweep = _sweepAngle * (drawEndFrac - startFrac);
+
+      final zonePaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = arcWidth
+        ..strokeCap = StrokeCap.butt
+        ..color = zone.startColor;
 
       canvas.drawArc(rect, zoneStartAngle, drawSweep, false, zonePaint);
     }
@@ -227,18 +213,18 @@ class _LuxurySpeedometerPainter extends CustomPainter {
   }
 
   Color _getSpeedColor(double spd) {
-    if (spd <= 100) return const Color(0xFF2196F3);
-    if (spd <= 300) return const Color(0xFF4CAF50);
-    if (spd <= 500) return const Color(0xFFFFEB3B);
-    if (spd <= 750) return const Color(0xFFFF9800);
-    return const Color(0xFFF44336);
+    if (spd <= 100) return const Color(0xFF1E88E5);
+    if (spd <= 300) return const Color(0xFF00BFA5);
+    if (spd <= 500) return const Color(0xFFFFB300);
+    if (spd <= 750) return const Color(0xFFFF6D00);
+    return const Color(0xFFD50000);
   }
 
   void _drawTicks(Canvas canvas, Offset center, double outerRadius) {
     final tickOuterR = outerRadius * 0.88;
-    final majorTickInnerR = outerRadius * 0.78;
+    final majorTickInnerR = outerRadius * 0.76;
     final minorTickInnerR = outerRadius * 0.82;
-    final labelR = outerRadius * 0.68;
+    final labelR = outerRadius * 0.65;
 
     // Major ticks: 0, 100, 200, ..., 1000
     for (int i = 0; i <= 10; i++) {
@@ -250,20 +236,20 @@ class _LuxurySpeedometerPainter extends CustomPainter {
       final innerPt = Offset(center.dx + majorTickInnerR * cos(angle), center.dy + majorTickInnerR * sin(angle));
 
       final tickPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.7)
+        ..color = Colors.white.withValues(alpha: 0.8)
         ..strokeWidth = 2.0
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(innerPt, outerPt, tickPaint);
 
-      // Number labels
+      // Number labels — small, elegant, light gray
       final labelPos = Offset(center.dx + labelR * cos(angle), center.dy + labelR * sin(angle));
       final textPainter = TextPainter(
         text: TextSpan(
           text: value.toInt().toString(),
           style: TextStyle(
-            fontSize: outerRadius * 0.075,
+            fontSize: outerRadius * 0.072,
             fontWeight: FontWeight.w300,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: Colors.white.withValues(alpha: 0.55),
             letterSpacing: -0.5,
           ),
         ),
@@ -276,9 +262,9 @@ class _LuxurySpeedometerPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // Minor ticks: every 50
-    for (int i = 0; i <= 20; i++) {
-      final value = i * 50.0;
+    // Minor ticks: every 20 (spec says every 20)
+    for (int i = 0; i <= 50; i++) {
+      final value = i * 20.0;
       if (value % 100 == 0) continue; // skip major positions
       final fraction = _speedToFraction(value);
       final angle = _startAngle + _sweepAngle * fraction;
@@ -287,7 +273,7 @@ class _LuxurySpeedometerPainter extends CustomPainter {
       final innerPt = Offset(center.dx + minorTickInnerR * cos(angle), center.dy + minorTickInnerR * sin(angle));
 
       final tickPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.25)
+        ..color = Colors.white.withValues(alpha: 0.2)
         ..strokeWidth = 1.0
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(innerPt, outerPt, tickPaint);
@@ -299,6 +285,9 @@ class _LuxurySpeedometerPainter extends CustomPainter {
     final angle = _startAngle + _sweepAngle * fraction;
     final needleLength = outerRadius * 0.72;
     final needleTailLength = outerRadius * 0.15;
+    final perpAngle = angle + pi / 2;
+    const halfWidth = 3.0;
+    const tailHalfWidth = 5.0;
 
     // Needle shadow
     canvas.save();
@@ -306,9 +295,6 @@ class _LuxurySpeedometerPainter extends CustomPainter {
     final shadowPath = Path();
     final shadowTip = Offset(center.dx + needleLength * cos(angle), center.dy + needleLength * sin(angle));
     final shadowTail = Offset(center.dx - needleTailLength * cos(angle), center.dy - needleTailLength * sin(angle));
-    final perpAngle = angle + pi / 2;
-    final halfWidth = 3.0;
-    final tailHalfWidth = 5.0;
 
     shadowPath.moveTo(shadowTip.dx + halfWidth * 0.3 * cos(perpAngle), shadowTip.dy + halfWidth * 0.3 * sin(perpAngle));
     shadowPath.lineTo(center.dx + tailHalfWidth * cos(perpAngle), center.dy + tailHalfWidth * sin(perpAngle));
@@ -326,7 +312,7 @@ class _LuxurySpeedometerPainter extends CustomPainter {
     );
     canvas.restore();
 
-    // Needle body — sleek red
+    // Needle body — RED tapered needle (#FF1744)
     final needlePath = Path();
     final tip = Offset(center.dx + needleLength * cos(angle), center.dy + needleLength * sin(angle));
     final tail = Offset(center.dx - needleTailLength * cos(angle), center.dy - needleTailLength * sin(angle));
@@ -357,7 +343,7 @@ class _LuxurySpeedometerPainter extends CustomPainter {
   }
 
   void _drawCenterCap(Canvas canvas, Offset center) {
-    // Outer ring shadow
+    // Chrome center cap shadow
     canvas.drawCircle(
       center.translate(0.5, 1),
       12,
@@ -386,7 +372,7 @@ class _LuxurySpeedometerPainter extends CustomPainter {
       Paint()..color = Colors.white.withValues(alpha: 0.3),
     );
 
-    // Chrome ring
+    // Chrome ring around cap
     canvas.drawCircle(
       center,
       12,

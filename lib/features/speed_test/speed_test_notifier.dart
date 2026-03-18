@@ -71,9 +71,7 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
 
   SpeedTestService? _service;
 
-  /// Start the speed test.
-  /// [vpnServerIp] — if VPN is connected, pass the connected server's IP.
-  /// When null, tests against the Russian server (domestic traffic).
+  /// Start the speed test using Cloudflare CDN (with LibreSpeed fallback).
   Future<void> startTest({String? vpnServerIp}) async {
     if (state.phase != SpeedTestPhase.idle && state.phase != SpeedTestPhase.complete) {
       return;
@@ -82,29 +80,14 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
     _service = SpeedTestService();
     state = const SpeedTestState(
       phase: SpeedTestPhase.selectingServer,
+      serverCity: 'Cloudflare CDN',
+      serverCountry: 'Global',
     );
 
     try {
-      // Get user location in parallel with server selection
-      final locationFuture = _service!.getUserLocation();
-
-      // Select server based on VPN state
-      final server = _service!.selectServer(vpnServerIp: vpnServerIp);
-      state = state.copyWith(
-        serverCity: server.city,
-        serverCountry: server.country,
-      );
-
-      final location = await locationFuture;
-      state = state.copyWith(
-        userCity: location.city,
-        userCountry: location.country,
-      );
-
       // Ping phase
       state = state.copyWith(phase: SpeedTestPhase.ping, progress: 0);
       final pingResult = await _service!.measurePing(
-        server,
         onProgress: (currentPing) {
           state = state.copyWith(currentSpeed: currentPing);
         },
@@ -123,13 +106,12 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
         currentSpeed: 0,
       );
       final dlSpeed = await _service!.measureDownloadSpeed(
-        server,
         onProgress: (speed) {
           state = state.copyWith(currentSpeed: speed);
         },
       );
 
-      // Store exact value
+      // Store exact value with full precision
       state = state.copyWith(downloadSpeed: dlSpeed, progress: 1.0);
 
       // Upload phase
@@ -139,13 +121,12 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
         currentSpeed: 0,
       );
       final ulSpeed = await _service!.measureUploadSpeed(
-        server,
         onProgress: (speed) {
           state = state.copyWith(currentSpeed: speed);
         },
       );
 
-      // Store exact value
+      // Store exact value with full precision
       state = state.copyWith(
         uploadSpeed: ulSpeed,
         progress: 1.0,

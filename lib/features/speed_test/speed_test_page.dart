@@ -34,7 +34,7 @@ class SpeedTestPage extends HookConsumerWidget {
                   ),
                   const Gap(8),
 
-                  // Speed display below gauge
+                  // Current speed: 40sp bold white
                   Text(
                     state.currentSpeed > 0
                         ? state.currentSpeed.toStringAsFixed(2)
@@ -47,13 +47,15 @@ class SpeedTestPage extends HookConsumerWidget {
                     ),
                   ),
                   const Gap(2),
+                  // Unit: 16sp gray
                   Text(
-                    'Мбит/с',
+                    '\u041c\u0431\u0438\u0442/\u0441', // Мбит/с
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 16,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
+                  // Phase indicator with color
                   if (_phaseLabel(state.phase) != null) ...[
                     const Gap(4),
                     Text(
@@ -61,7 +63,7 @@ class SpeedTestPage extends HookConsumerWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                        color: _phaseColor(state.phase),
                       ),
                     ),
                   ],
@@ -97,13 +99,13 @@ class SpeedTestPage extends HookConsumerWidget {
   String? _phaseLabel(SpeedTestPhase phase) {
     switch (phase) {
       case SpeedTestPhase.selectingServer:
-        return 'Выбор сервера...';
+        return '\u0412\u044b\u0431\u043e\u0440 \u0441\u0435\u0440\u0432\u0435\u0440\u0430...';
       case SpeedTestPhase.ping:
-        return 'Пинг';
+        return '\u041f\u0438\u043d\u0433';
       case SpeedTestPhase.download:
-        return 'Загрузка';
+        return '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430';
       case SpeedTestPhase.upload:
-        return 'Отдача';
+        return '\u041e\u0442\u0434\u0430\u0447\u0430';
       default:
         return null;
     }
@@ -112,15 +114,28 @@ class SpeedTestPage extends HookConsumerWidget {
   String _phaseLabelWithArrow(SpeedTestPhase phase) {
     switch (phase) {
       case SpeedTestPhase.selectingServer:
-        return '⏳ Выбор сервера...';
+        return '\u23f3 \u0412\u044b\u0431\u043e\u0440 \u0441\u0435\u0440\u0432\u0435\u0440\u0430...';
       case SpeedTestPhase.ping:
-        return '◉ Пинг';
+        return '\u25c9 \u041f\u0438\u043d\u0433';
       case SpeedTestPhase.download:
-        return '▼ Загрузка';
+        return '\u25bc \u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430';
       case SpeedTestPhase.upload:
-        return '▲ Отдача';
+        return '\u25b2 \u041e\u0442\u0434\u0430\u0447\u0430';
       default:
         return '';
+    }
+  }
+
+  Color _phaseColor(SpeedTestPhase phase) {
+    switch (phase) {
+      case SpeedTestPhase.ping:
+        return const Color(0xFF66BB6A); // green
+      case SpeedTestPhase.download:
+        return const Color(0xFF4FC3F7); // blue
+      case SpeedTestPhase.upload:
+        return const Color(0xFFAB47BC); // purple
+      default:
+        return Colors.white70;
     }
   }
 
@@ -133,18 +148,18 @@ class SpeedTestPage extends HookConsumerWidget {
       ),
       child: Column(
         children: [
-          // Row 1: Download & Upload (large)
+          // Row 1: Download & Upload (large 24sp)
           Row(
             children: [
               Expanded(
                 child: _ResultTile(
                   icon: Icons.download_rounded,
-                  label: 'Загрузка',
+                  label: '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430',
                   value: _formatFinalSpeed(state.downloadSpeed),
                   liveValue: state.phase == SpeedTestPhase.download
                       ? formatSpeedLive(state.currentSpeed)
                       : null,
-                  unit: 'Мбит/с',
+                  unit: '\u041c\u0431\u0438\u0442/\u0441',
                   color: const Color(0xFF4FC3F7),
                   isActive: state.phase == SpeedTestPhase.download,
                   isLarge: true,
@@ -154,12 +169,12 @@ class SpeedTestPage extends HookConsumerWidget {
               Expanded(
                 child: _ResultTile(
                   icon: Icons.upload_rounded,
-                  label: 'Отдача',
+                  label: '\u041e\u0442\u0434\u0430\u0447\u0430',
                   value: _formatFinalSpeed(state.uploadSpeed),
                   liveValue: state.phase == SpeedTestPhase.upload
                       ? formatSpeedLive(state.currentSpeed)
                       : null,
-                  unit: 'Мбит/с',
+                  unit: '\u041c\u0431\u0438\u0442/\u0441',
                   color: const Color(0xFFAB47BC),
                   isActive: state.phase == SpeedTestPhase.upload,
                   isLarge: true,
@@ -168,20 +183,20 @@ class SpeedTestPage extends HookConsumerWidget {
             ],
           ),
           const Gap(12),
-          // Row 2: Ping & Jitter (small)
+          // Row 2: Ping & Jitter (small 14sp)
           Row(
             children: [
               Expanded(
                 child: _ResultTile(
                   icon: Icons.network_ping_rounded,
-                  label: 'Пинг',
+                  label: '\u041f\u0438\u043d\u0433',
                   value: (state.ping ?? 0) > 0
                       ? state.ping!.toStringAsFixed(0)
                       : '--',
                   liveValue: state.phase == SpeedTestPhase.ping
                       ? state.currentSpeed.toStringAsFixed(0)
                       : null,
-                  unit: 'мс',
+                  unit: '\u043c\u0441',
                   color: const Color(0xFF66BB6A),
                   isActive: state.phase == SpeedTestPhase.ping,
                   isLarge: false,
@@ -191,11 +206,11 @@ class SpeedTestPage extends HookConsumerWidget {
               Expanded(
                 child: _ResultTile(
                   icon: Icons.swap_vert_rounded,
-                  label: 'Джиттер',
+                  label: '\u0414\u0436\u0438\u0442\u0442\u0435\u0440',
                   value: (state.jitter ?? 0) > 0
-                      ? state.jitter!.toStringAsFixed(2)
+                      ? state.jitter!.toStringAsFixed(1)
                       : '--',
-                  unit: 'мс',
+                  unit: '\u043c\u0441',
                   color: const Color(0xFFFFB74D),
                   isActive: false,
                   isLarge: false,
@@ -214,30 +229,19 @@ class SpeedTestPage extends HookConsumerWidget {
   }
 
   Widget _buildServerRoute(SpeedTestState state, ThemeData theme) {
-    final from = state.userCity ?? '';
-    final to = state.serverCity ?? '';
-
-    if (from.isEmpty && to.isEmpty) {
-      return Text(
-        'Оренбург → Москва',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-        ),
-      );
-    }
-
+    // Show "Cloudflare CDN" as the target
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.my_location_rounded, size: 14, color: theme.colorScheme.primary),
         const Gap(4),
         Text(
-          from.isNotEmpty ? from : '...',
+          state.userCity?.isNotEmpty == true ? state.userCity! : '\u0412\u0430\u0448 IP',
           style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
         ),
         const Gap(8),
         Text(
-          '→',
+          '\u2192',
           style: TextStyle(
             color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
           ),
@@ -246,7 +250,7 @@ class SpeedTestPage extends HookConsumerWidget {
         Icon(Icons.dns_rounded, size: 14, color: theme.colorScheme.secondary),
         const Gap(4),
         Text(
-          to.isNotEmpty ? to : '...',
+          'Cloudflare CDN',
           style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
         ),
       ],
@@ -266,7 +270,7 @@ class SpeedTestPage extends HookConsumerWidget {
         child: FilledButton.icon(
           onPressed: () => ref.read(speedTestNotifierProvider.notifier).cancelTest(),
           icon: const Icon(Icons.stop_rounded, size: 22),
-          label: const Text('Остановить'),
+          label: const Text('\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c'),
           style: FilledButton.styleFrom(
             backgroundColor: theme.colorScheme.error,
             foregroundColor: theme.colorScheme.onError,
@@ -287,7 +291,9 @@ class SpeedTestPage extends HookConsumerWidget {
           isComplete ? Icons.refresh_rounded : Icons.speed_rounded,
           size: 22,
         ),
-        label: Text(isComplete ? 'Проверить снова' : 'Проверить скорость'),
+        label: Text(isComplete
+            ? '\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0441\u043d\u043e\u0432\u0430'
+            : '\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0441\u043a\u043e\u0440\u043e\u0441\u0442\u044c'),
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -345,8 +351,8 @@ class _ResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final displayValue = liveValue ?? value;
-    final fontSize = isLarge ? 26.0 : 18.0;
-    final unitSize = isLarge ? 13.0 : 11.0;
+    final fontSize = isLarge ? 24.0 : 14.0;
+    final unitSize = isLarge ? 12.0 : 11.0;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
