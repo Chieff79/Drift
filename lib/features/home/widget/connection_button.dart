@@ -246,7 +246,7 @@ class _ConnectionButton extends StatelessWidget {
                       if (useImage) {
                         return image.image();
                       } else {
-                        return Assets.images.logo.svg(colorFilter: ColorFilter.mode(value!, BlendMode.srcIn));
+                        return Image.asset('assets/images/drift_logo.png');
                       }
                     },
                   ),

@@ -24,14 +24,47 @@ class SpeedTestPage extends HookConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 children: [
-                  // Speedometer
+                  // Luxury Speedometer
                   SpeedGauge(
                     speed: state.currentSpeed,
                     maxSpeed: 1000,
                     isActive: isRunning,
-                    size: 260,
+                    size: 280,
                     phaseLabel: _phaseLabel(state.phase),
                   ),
+                  const Gap(8),
+
+                  // Speed display below gauge
+                  Text(
+                    state.currentSpeed > 0
+                        ? state.currentSpeed.toStringAsFixed(2)
+                        : '0.00',
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface,
+                      height: 1,
+                    ),
+                  ),
+                  const Gap(2),
+                  Text(
+                    'Мбит/с',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  if (_phaseLabel(state.phase) != null) ...[
+                    const Gap(4),
+                    Text(
+                      _phaseLabelWithArrow(state.phase),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
                   const Gap(24),
 
                   // Results grid 2x2
@@ -73,6 +106,21 @@ class SpeedTestPage extends HookConsumerWidget {
         return 'Отдача';
       default:
         return null;
+    }
+  }
+
+  String _phaseLabelWithArrow(SpeedTestPhase phase) {
+    switch (phase) {
+      case SpeedTestPhase.selectingServer:
+        return '⏳ Выбор сервера...';
+      case SpeedTestPhase.ping:
+        return '◉ Пинг';
+      case SpeedTestPhase.download:
+        return '▼ Загрузка';
+      case SpeedTestPhase.upload:
+        return '▲ Отдача';
+      default:
+        return '';
     }
   }
 

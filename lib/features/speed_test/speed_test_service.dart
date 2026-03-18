@@ -44,14 +44,12 @@ class SpeedTestService {
   /// Map of VPN server IPs to their SpeedTestServer definitions
   static const Map<String, SpeedTestServer> vpnServers = {
     '213.165.50.230': SpeedTestServer(host: '213.165.50.230', port: 8880, city: 'Нью-Йорк', country: 'USA'),
-    '62.60.235.92': SpeedTestServer(host: '62.60.235.92', port: 8880, city: 'Амстердам', country: 'Netherlands'),
     '217.144.184.135': SpeedTestServer(host: '217.144.184.135', port: 8880, city: 'Москва', country: 'Russia'),
   };
 
   static const List<SpeedTestServer> allServers = [
     russianServer,
     SpeedTestServer(host: '213.165.50.230', port: 8880, city: 'Нью-Йорк', country: 'USA'),
-    SpeedTestServer(host: '62.60.235.92', port: 8880, city: 'Амстердам', country: 'Netherlands'),
   ];
 
   late final Dio _dio;
@@ -112,7 +110,7 @@ class SpeedTestService {
       try {
         final stopwatch = Stopwatch()..start();
         await _dio.get(
-          '${server.baseUrl}/empty',
+          '${server.baseUrl}/backend/empty.php',
           cancelToken: _cancelToken,
           options: Options(receiveTimeout: const Duration(seconds: 5)),
         );
@@ -174,7 +172,7 @@ class SpeedTestService {
         while (!_disposed && !(_cancelToken?.isCancelled ?? false) && stopwatch.elapsed < duration) {
           try {
             final response = await _dio.get<ResponseBody>(
-              '${server.baseUrl}/garbage?ckSize=100',
+              '${server.baseUrl}/backend/garbage.php?ckSize=100',
               cancelToken: _cancelToken,
               options: Options(
                 responseType: ResponseType.stream,
@@ -247,7 +245,7 @@ class SpeedTestService {
         while (!_disposed && !(_cancelToken?.isCancelled ?? false) && stopwatch.elapsed < duration) {
           try {
             await _dio.post(
-              '${server.baseUrl}/empty',
+              '${server.baseUrl}/backend/empty.php',
               data: uploadData, // Send Uint8List directly — fixes upload
               cancelToken: _cancelToken,
               options: Options(

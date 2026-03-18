@@ -1,7 +1,7 @@
 name: hiddify
 description: Drift — Fast & Secure VPN for iOS & Android.
 publish_to: "none"
-version: 4.1.2+40111
+version: 4.1.2+40112
 
 environment:
   sdk: ^3.10.4
@@ -157,6 +157,7 @@ flutter:
     # - assets/core/geoip.db
     # - assets/core/geosite.db
     - assets/images/logo.svg
+    - assets/images/drift_logo.png
     - assets/images/tray_icon.ico
     - assets/images/tray_icon.png
     - assets/images/tray_icon_dark.ico
