@@ -17,20 +17,85 @@ String formatSpeedLive(double speed) {
   return speed.toStringAsFixed(2);
 }
 
-class SpeedTestService {
-  /// LibreSpeed fallback server
-  static const String _libreSpeedHost = '217.144.184.135';
-  static const int _libreSpeedPort = 8880;
+/// Speed test server descriptor
+class SpeedServer {
+  final String name;
+  final String city;
+  final String countryCode;
+  final String pingUrl;
+  final String downloadUrl;
+  final String uploadUrl;
 
+  const SpeedServer({
+    required this.name,
+    required this.city,
+    required this.countryCode,
+    required this.pingUrl,
+    required this.downloadUrl,
+    required this.uploadUrl,
+  });
+}
+
+/// Known speed test servers — traffic goes THROUGH VPN (no DIRECT bypass).
+/// Primary: user's own Marzban VPS nodes.
+/// Fallbacks: public CDN endpoints that work in Russia.
+class SpeedServers {
+  // ── User's own servers (aeza.net) ──────────────────────────────────────────
+  // TODO: replace with real IPs once Marzban is located
+  // These will run LibreSpeed (lightweight PHP) on port 443 via nginx
+  static const driftNl = SpeedServer(
+    name: 'Drift NL',
+    city: 'Amsterdam',
+    countryCode: 'NL',
+    pingUrl: 'https://nl.drift-vpn.net/speed/backend/empty.php',
+    downloadUrl: 'https://nl.drift-vpn.net/speed/backend/garbage.php?ckSize=100',
+    uploadUrl: 'https://nl.drift-vpn.net/speed/backend/empty.php',
+  );
+
+  static const driftRu = SpeedServer(
+    name: 'Drift RU',
+    city: 'Москва',
+    countryCode: 'RU',
+    pingUrl: 'https://ru.drift-vpn.net/speed/backend/empty.php',
+    downloadUrl: 'https://ru.drift-vpn.net/speed/backend/garbage.php?ckSize=100',
+    uploadUrl: 'https://ru.drift-vpn.net/speed/backend/empty.php',
+  );
+
+  // ── Public fallbacks — Russia-accessible ───────────────────────────────────
+  // Fast.com uses Netflix CDN — generally accessible in Russia via VPN
+  static const fastCom = SpeedServer(
+    name: 'Fast.com',
+    city: 'Global CDN',
+    countryCode: 'US',
+    pingUrl: 'https://api.fast.com/netflix/speedtest/v2?https=true&token=YXNkZmFzZGxmbnNkYWZoYXNk&urlCount=1',
+    downloadUrl: 'https://api.fast.com/netflix/speedtest/v2?https=true&token=YXNkZmFzZGxmbnNkYWZoYXNk&urlCount=1',
+    uploadUrl: 'https://api.fast.com/netflix/speedtest/v2?https=true&token=YXNkZmFzZGxmbnNkYWZoYXNk&urlCount=1',
+  );
+
+  // Cloudflare — blocked in Russia without VPN but accessible through VPN
+  static const cloudflare = SpeedServer(
+    name: 'Cloudflare',
+    city: 'Global CDN',
+    countryCode: 'US',
+    pingUrl: 'https://speed.cloudflare.com/__down?bytes=0',
+    downloadUrl: 'https://speed.cloudflare.com/__down?bytes=10000000',
+    uploadUrl: 'https://speed.cloudflare.com/__up',
+  );
+
+  static const all = [driftNl, driftRu, cloudflare];
+}
+
+class SpeedTestService {
   bool _disposed = false;
   bool _cancelled = false;
 
-  /// Create a fresh HttpClient that bypasses any proxy (including Hiddify)
-  HttpClient _createDirectClient() {
+  /// Create HttpClient that routes through the system proxy (=VPN tunnel).
+  /// DO NOT set findProxy to 'DIRECT' — that would bypass the VPN!
+  HttpClient _createVpnClient() {
     final client = HttpClient();
-    client.findProxy = (_) => 'DIRECT';
     client.badCertificateCallback = (cert, host, port) => true;
     client.connectionTimeout = const Duration(seconds: 10);
+    // No findProxy set → uses system proxy → goes through VPN ✓
     return client;
   }
 
@@ -43,46 +108,57 @@ class SpeedTestService {
     _cancelled = true;
   }
 
-  /// Measure ping (median RTT) and jitter using Cloudflare endpoint
+  /// Probe servers and return the first reachable one.
+  /// Returns null if no server responds (VPN not connected?).
+  Future<SpeedServer?> selectBestServer({
+    void Function(String status)? onStatus,
+  }) async {
+    onStatus?.call('Поиск сервера...');
+    for (final server in SpeedServers.all) {
+      if (_cancelled || _disposed) break;
+      try {
+        onStatus?.call('Проверка ${server.city}...');
+        final client = _createVpnClient();
+        final uri = Uri.parse(server.pingUrl);
+        final req = await client.getUrl(uri).timeout(const Duration(seconds: 6));
+        final resp = await req.close().timeout(const Duration(seconds: 6));
+        await resp.drain<void>();
+        client.close();
+        return server;
+      } catch (_) {
+        // try next
+      }
+    }
+    return null;
+  }
+
+  /// Measure ping (median RTT) and jitter
   Future<({double ping, double jitter})> measurePing({
+    required SpeedServer server,
     void Function(double currentPing)? onProgress,
   }) async {
     _cancelled = false;
     final rtts = <double>[];
 
-    // Try Cloudflare first
-    var client = _createDirectClient();
-    bool useFallback = false;
-
     for (int i = 0; i < 10; i++) {
       if (_disposed || _cancelled) break;
       try {
         final sw = Stopwatch()..start();
-        final uri = useFallback
-            ? Uri.parse('http://$_libreSpeedHost:$_libreSpeedPort/backend/empty.php')
-            : Uri.parse('https://speed.cloudflare.com/__down?bytes=0');
-        final request = await client.getUrl(uri);
-        final response = await request.close();
-        await response.drain<void>();
+        final client = _createVpnClient();
+        final req = await client.getUrl(Uri.parse(server.pingUrl));
+        final resp = await req.close().timeout(const Duration(seconds: 5));
+        await resp.drain<void>();
         sw.stop();
+        client.close();
         rtts.add(sw.elapsedMilliseconds.toDouble());
         onProgress?.call(rtts.last);
       } catch (_) {
-        // If first Cloudflare attempt fails, switch to fallback
-        if (i == 0 && !useFallback) {
-          useFallback = true;
-          client.close(force: true);
-          client = _createDirectClient();
-        }
+        // skip failed pings
       }
       await Future.delayed(const Duration(milliseconds: 100));
     }
 
-    client.close(force: true);
-
-    if (rtts.isEmpty) {
-      return (ping: 0.0, jitter: 0.0);
-    }
+    if (rtts.isEmpty) return (ping: 0.0, jitter: 0.0);
 
     final sorted = List<double>.from(rtts)..sort();
     final median = sorted.length.isOdd
@@ -98,9 +174,9 @@ class SpeedTestService {
     return (ping: median, jitter: jitter);
   }
 
-  /// Measure download speed using dart:io HttpClient with Cloudflare CDN
-  /// Falls back to LibreSpeed if Cloudflare fails
+  /// Measure download speed through VPN
   Future<double> measureDownloadSpeed({
+    required SpeedServer server,
     Duration duration = const Duration(seconds: 10),
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
@@ -109,38 +185,31 @@ class SpeedTestService {
     int totalBytes = 0;
     final sw = Stopwatch()..start();
 
-    // Try Cloudflare first with a quick probe
-    bool useCloudflare = await _probeCloudflare();
-
-    // Progress reporting timer
-    Timer? progressTimer;
-    progressTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+    late final Timer progressTimer;
+    // ignore: prefer_final_locals
+    progressTimer = Timer.periodic(const Duration(milliseconds: 250), (t) {
       if (sw.elapsedMilliseconds > 0 && !_cancelled && !_disposed) {
         final speed = (totalBytes * 8) / (sw.elapsedMilliseconds * 1000);
         onProgress?.call(speed);
       }
       if (sw.elapsed >= duration || _cancelled || _disposed) {
-        progressTimer?.cancel();
+        t.cancel();
       }
     });
 
     try {
       final futures = List.generate(streamCount, (_) async {
-        final client = _createDirectClient();
+        final client = _createVpnClient();
         try {
           while (!_disposed && !_cancelled && sw.elapsed < duration) {
             try {
-              final uri = useCloudflare
-                  ? Uri.parse('https://speed.cloudflare.com/__down?bytes=10000000')
-                  : Uri.parse('http://$_libreSpeedHost:$_libreSpeedPort/backend/garbage.php?ckSize=100');
-              final request = await client.getUrl(uri);
-              final response = await request.close();
-              await for (final chunk in response) {
+              final req = await client.getUrl(Uri.parse(server.downloadUrl));
+              final resp = await req.close();
+              await for (final chunk in resp) {
                 totalBytes += chunk.length;
                 if (sw.elapsed >= duration || _cancelled || _disposed) break;
               }
             } catch (_) {
-              // If Cloudflare stream fails mid-test, just break this stream
               break;
             }
           }
@@ -148,10 +217,9 @@ class SpeedTestService {
           client.close(force: true);
         }
       });
-
       await Future.wait(futures);
     } finally {
-      progressTimer?.cancel();
+      progressTimer.cancel();
       sw.stop();
     }
 
@@ -160,16 +228,15 @@ class SpeedTestService {
         : 0.0;
   }
 
-  /// Measure upload speed using dart:io HttpClient with Cloudflare CDN
-  /// Falls back to LibreSpeed if Cloudflare fails
+  /// Measure upload speed through VPN
   Future<double> measureUploadSpeed({
+    required SpeedServer server,
     Duration duration = const Duration(seconds: 10),
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
     _cancelled = false;
     const int streamCount = 4;
-    // Pre-generate 2MB of random data
-    const chunkSize = 2 * 1024 * 1024;
+    const chunkSize = 2 * 1024 * 1024; // 2 MB
     final random = Random();
     final uploadData = Uint8List(chunkSize);
     for (int i = 0; i < chunkSize; i++) {
@@ -179,35 +246,30 @@ class SpeedTestService {
     int totalBytes = 0;
     final sw = Stopwatch()..start();
 
-    bool useCloudflare = await _probeCloudflare();
-
-    // Progress reporting timer
-    Timer? progressTimer;
-    progressTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+    late final Timer progressTimer;
+    // ignore: prefer_final_locals
+    progressTimer = Timer.periodic(const Duration(milliseconds: 250), (t) {
       if (sw.elapsedMilliseconds > 0 && !_cancelled && !_disposed) {
         final speed = (totalBytes * 8) / (sw.elapsedMilliseconds * 1000);
         onProgress?.call(speed);
       }
       if (sw.elapsed >= duration || _cancelled || _disposed) {
-        progressTimer?.cancel();
+        t.cancel();
       }
     });
 
     try {
       final futures = List.generate(streamCount, (_) async {
-        final client = _createDirectClient();
+        final client = _createVpnClient();
         try {
           while (!_disposed && !_cancelled && sw.elapsed < duration) {
             try {
-              final uri = useCloudflare
-                  ? Uri.parse('https://speed.cloudflare.com/__up')
-                  : Uri.parse('http://$_libreSpeedHost:$_libreSpeedPort/backend/empty.php');
-              final request = await client.postUrl(uri);
-              request.headers.contentType = ContentType.binary;
-              request.contentLength = uploadData.length;
-              request.add(uploadData);
-              final response = await request.close();
-              await response.drain<void>();
+              final req = await client.postUrl(Uri.parse(server.uploadUrl));
+              req.headers.contentType = ContentType.binary;
+              req.contentLength = uploadData.length;
+              req.add(uploadData);
+              final resp = await req.close();
+              await resp.drain<void>();
               totalBytes += uploadData.length;
             } catch (_) {
               break;
@@ -217,32 +279,14 @@ class SpeedTestService {
           client.close(force: true);
         }
       });
-
       await Future.wait(futures);
     } finally {
-      progressTimer?.cancel();
+      progressTimer.cancel();
       sw.stop();
     }
 
     return sw.elapsedMilliseconds > 0
         ? (totalBytes * 8) / (sw.elapsedMilliseconds * 1000)
         : 0.0;
-  }
-
-  /// Quick probe to check if Cloudflare is reachable
-  Future<bool> _probeCloudflare() async {
-    final client = _createDirectClient();
-    try {
-      final request = await client.getUrl(
-        Uri.parse('https://speed.cloudflare.com/__down?bytes=0'),
-      ).timeout(const Duration(seconds: 5));
-      final response = await request.close().timeout(const Duration(seconds: 5));
-      await response.drain<void>();
-      return true;
-    } catch (_) {
-      return false;
-    } finally {
-      client.close(force: true);
-    }
   }
 }

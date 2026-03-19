@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:hiddify/features/speed_test/speed_test_service.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -13,7 +15,9 @@ class SpeedTestState {
   final String? userCountry;
   final String? serverCity;
   final String? serverCountry;
+  final String? serverName;
   final String? error;
+  final String? statusMessage;
 
   final double? downloadSpeed;
   final double? uploadSpeed;
@@ -28,7 +32,9 @@ class SpeedTestState {
     this.userCountry,
     this.serverCity,
     this.serverCountry,
+    this.serverName,
     this.error,
+    this.statusMessage,
     this.downloadSpeed,
     this.uploadSpeed,
     this.ping,
@@ -43,7 +49,9 @@ class SpeedTestState {
     String? userCountry,
     String? serverCity,
     String? serverCountry,
+    String? serverName,
     String? error,
+    String? statusMessage,
     double? downloadSpeed,
     double? uploadSpeed,
     double? ping,
@@ -57,7 +65,9 @@ class SpeedTestState {
       userCountry: userCountry ?? this.userCountry,
       serverCity: serverCity ?? this.serverCity,
       serverCountry: serverCountry ?? this.serverCountry,
+      serverName: serverName ?? this.serverName,
       error: error,
+      statusMessage: statusMessage ?? this.statusMessage,
       downloadSpeed: downloadSpeed ?? this.downloadSpeed,
       uploadSpeed: uploadSpeed ?? this.uploadSpeed,
       ping: ping ?? this.ping,
@@ -71,72 +81,125 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
 
   SpeedTestService? _service;
 
-  /// Start the speed test using Cloudflare CDN (with LibreSpeed fallback).
-  Future<void> startTest({String? vpnServerIp}) async {
+  /// Fetch user's real IP info to populate City A (where user is)
+  Future<Map<String, String>> _fetchUserLocation() async {
+    try {
+      final client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 6)
+        ..findProxy = (uri) => 'DIRECT';
+      final req = await client.getUrl(Uri.parse('https://ipapi.co/json/'));
+      req.headers.set('User-Agent', 'Mozilla/5.0');
+      final resp = await req.close().timeout(const Duration(seconds: 6));
+      if (resp.statusCode == 200) {
+        final body = await resp.transform(const SystemEncoding().decoder).join();
+        final city = _extractJson(body, 'city') ?? '';
+        final country = _extractJson(body, 'country_name') ?? _extractJson(body, 'country') ?? '';
+        final countryCode = _extractJson(body, 'country_code') ?? '';
+        client.close();
+        return {'city': city, 'country': country, 'countryCode': countryCode};
+      }
+      client.close();
+    } catch (_) {}
+    return {};
+  }
+
+  String? _extractJson(String body, String key) {
+    final pattern = RegExp('"$key"\\s*:\\s*"([^"]*)"');
+    return pattern.firstMatch(body)?.group(1);
+  }
+
+  /// Start the speed test. Traffic goes THROUGH the VPN.
+  Future<void> startTest() async {
     if (state.phase != SpeedTestPhase.idle && state.phase != SpeedTestPhase.complete) {
       return;
     }
 
     _service = SpeedTestService();
+
+    // Kick off user location lookup in parallel (non-blocking)
+    final userLocationFuture = _fetchUserLocation();
+
     state = const SpeedTestState(
       phase: SpeedTestPhase.selectingServer,
-      serverCity: 'Cloudflare CDN',
-      serverCountry: 'Global',
+      statusMessage: 'Поиск сервера...',
     );
 
     try {
-      // Ping phase
-      state = state.copyWith(phase: SpeedTestPhase.ping, progress: 0);
-      final pingResult = await _service!.measurePing(
-        onProgress: (currentPing) {
-          state = state.copyWith(currentSpeed: currentPing);
+      // ── 1. Select server ────────────────────────────────────────────────────
+      final server = await _service!.selectBestServer(
+        onStatus: (msg) {
+          if (!_disposed) state = state.copyWith(statusMessage: msg);
         },
       );
 
+      if (server == null) {
+        state = state.copyWith(
+          phase: SpeedTestPhase.idle,
+          error: 'Не удалось подключиться к серверу. Включён ли VPN?',
+        );
+        return;
+      }
+
+      // Apply server info to state
+      state = state.copyWith(
+        serverCity: server.city,
+        serverCountry: server.countryCode,
+        serverName: server.name,
+        statusMessage: 'Сервер: ${server.city}',
+      );
+
+      // Wait for user location (should be done by now)
+      final userLoc = await userLocationFuture;
+      if (userLoc.isNotEmpty) {
+        state = state.copyWith(
+          userCity: userLoc['city'],
+          userCountry: userLoc['countryCode'],
+        );
+      }
+
+      // ── 2. Ping phase ───────────────────────────────────────────────────────
+      state = state.copyWith(phase: SpeedTestPhase.ping, progress: 0, currentSpeed: 0);
+      final pingResult = await _service!.measurePing(
+        server: server,
+        onProgress: (currentPing) {
+          if (!_disposed) state = state.copyWith(currentSpeed: currentPing);
+        },
+      );
       state = state.copyWith(
         ping: pingResult.ping,
         jitter: pingResult.jitter,
         progress: 1.0,
       );
 
-      // Download phase
-      state = state.copyWith(
-        phase: SpeedTestPhase.download,
-        progress: 0,
-        currentSpeed: 0,
-      );
+      // ── 3. Download phase ───────────────────────────────────────────────────
+      state = state.copyWith(phase: SpeedTestPhase.download, progress: 0, currentSpeed: 0);
       final dlSpeed = await _service!.measureDownloadSpeed(
+        server: server,
         onProgress: (speed) {
-          state = state.copyWith(currentSpeed: speed);
+          if (!_disposed) state = state.copyWith(currentSpeed: speed);
         },
       );
-
-      // Store exact value with full precision
       state = state.copyWith(downloadSpeed: dlSpeed, progress: 1.0);
 
-      // Upload phase
-      state = state.copyWith(
-        phase: SpeedTestPhase.upload,
-        progress: 0,
-        currentSpeed: 0,
-      );
+      // ── 4. Upload phase ─────────────────────────────────────────────────────
+      state = state.copyWith(phase: SpeedTestPhase.upload, progress: 0, currentSpeed: 0);
       final ulSpeed = await _service!.measureUploadSpeed(
+        server: server,
         onProgress: (speed) {
-          state = state.copyWith(currentSpeed: speed);
+          if (!_disposed) state = state.copyWith(currentSpeed: speed);
         },
       );
-
-      // Store exact value with full precision
       state = state.copyWith(
         uploadSpeed: ulSpeed,
         progress: 1.0,
         phase: SpeedTestPhase.complete,
         currentSpeed: 0,
+        statusMessage: null,
       );
     } catch (e) {
       state = state.copyWith(
         phase: SpeedTestPhase.idle,
-        error: 'Speed test failed: ${e.toString()}',
+        error: 'Ошибка теста скорости: ${e.toString()}',
       );
     } finally {
       _service?.dispose();
@@ -144,14 +207,13 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
     }
   }
 
+  bool get _disposed => !mounted;
+
   void cancelTest() {
     _service?.cancel();
     _service?.dispose();
     _service = null;
-    state = state.copyWith(
-      phase: SpeedTestPhase.idle,
-      currentSpeed: 0,
-    );
+    state = state.copyWith(phase: SpeedTestPhase.idle, currentSpeed: 0);
   }
 
   void reset() {

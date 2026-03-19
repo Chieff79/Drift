@@ -56,14 +56,16 @@ class SpeedTestPage extends HookConsumerWidget {
                     ),
                   ),
                   // Phase indicator with color
-                  if (_phaseLabel(state.phase) != null) ...[
+                  if (_phaseLabel(state.phase) != null || state.statusMessage != null) ...[
                     const Gap(4),
                     Text(
-                      _phaseLabelWithArrow(state.phase),
+                      state.statusMessage ?? _phaseLabelWithArrow(state.phase),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: _phaseColor(state.phase),
+                        color: state.statusMessage != null
+                            ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
+                            : _phaseColor(state.phase),
                       ),
                     ),
                   ],
@@ -229,28 +231,32 @@ class SpeedTestPage extends HookConsumerWidget {
   }
 
   Widget _buildServerRoute(SpeedTestState state, ThemeData theme) {
-    // Show "Cloudflare CDN" as the target
+    final userLabel = [
+      if (state.userCity?.isNotEmpty == true) state.userCity,
+      if (state.userCountry?.isNotEmpty == true) state.userCountry,
+    ].join(', ');
+
+    final serverLabel = state.serverCity?.isNotEmpty == true
+        ? state.serverCity!
+        : (state.serverName ?? 'CDN');
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.my_location_rounded, size: 14, color: theme.colorScheme.primary),
         const Gap(4),
         Text(
-          state.userCity?.isNotEmpty == true ? state.userCity! : '\u0412\u0430\u0448 IP',
+          userLabel.isNotEmpty ? userLabel : 'Ваш IP',
           style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
         ),
         const Gap(8),
-        Text(
-          '\u2192',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-          ),
-        ),
+        Icon(Icons.arrow_forward_rounded, size: 14,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
         const Gap(8),
         Icon(Icons.dns_rounded, size: 14, color: theme.colorScheme.secondary),
         const Gap(4),
         Text(
-          'Cloudflare CDN',
+          serverLabel,
           style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
         ),
       ],
@@ -287,6 +293,7 @@ class SpeedTestPage extends HookConsumerWidget {
       width: double.infinity,
       child: FilledButton.icon(
         onPressed: () => ref.read(speedTestNotifierProvider.notifier).startTest(),
+        // routes through VPN — server auto-selected
         icon: Icon(
           isComplete ? Icons.refresh_rounded : Icons.speed_rounded,
           size: 22,
