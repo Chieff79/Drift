@@ -66,7 +66,7 @@
             "program": "lib/main.dart",
             "args": [
                 "--app-id",
-                "app.hiddify.com"
+                "com.drift.vpn"
             ],
             "deviceId": "mac-designed-for-ipad",
         }
