@@ -3,7 +3,6 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
-import 'package:hiddify/features/settings/notifier/warp_option/warp_option_notifier.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -39,6 +38,26 @@ class QuickSettingsModal extends HookConsumerWidget {
               ),
             ),
             const Gap(12),
+            // ── Kill Switch ─────────────────────────────────────────────────
+            ListTile(
+              leading: const Icon(Icons.shield_rounded),
+              title: const Text('Kill Switch'),
+              subtitle: const Text(
+                'Блокировать трафик если VPN отключён',
+                style: TextStyle(fontSize: 12),
+              ),
+              onTap: () async {
+                final value = ref.watch(ConfigOptions.strictRoute);
+                await ref.read(ConfigOptions.strictRoute.notifier).update(!value);
+              },
+              trailing: Switch.adaptive(
+                value: ref.watch(ConfigOptions.strictRoute),
+                onChanged: (value) async {
+                  await ref.read(ConfigOptions.strictRoute.notifier).update(value);
+                },
+              ),
+            ),
+            // ── WARP ────────────────────────────────────────────────────────
             ListTile(
               leading: const Icon(Icons.cloud_rounded),
               title: Text(ref.watch(ConfigOptions.warpDetourMode).presentExplain(t)),
@@ -54,23 +73,9 @@ class QuickSettingsModal extends HookConsumerWidget {
                 value: ref.watch(ConfigOptions.enableWarp),
                 onChanged: (value) async {
                   await ref.read(ConfigOptions.enableWarp.notifier).update(value);
-                  // await ref.read(warpOptionNotifierProvider.notifier).genWarps();
                 },
               ),
             ),
-            // ListTile(
-
-            //   leading: const Icon(Icons.content_cut_rounded),
-            //   title: Text(t.pages.settings.tlsTricks.title),
-            //   onTap: () {
-            //     context.pop();
-            //     context.goNamed('tlsTricks');
-            //   },
-            //   trailing: Switch.adaptive(
-            //     value: ref.watch(ConfigOptions.enableTlsFragment),
-            //     onChanged: ref.read(ConfigOptions.enableTlsFragment.notifier).update,
-            //   ),
-            // ),
             const Gap(16),
           ],
         ),
