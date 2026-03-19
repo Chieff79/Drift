@@ -1,11 +1,11 @@
 {
-    "name": "Hiddify",
-    "short_name": "Hiddify",
+    "name": "Drift VPN",
+    "short_name": "Drift",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Hiddify",
+    "background_color": "#16A34A",
+    "theme_color": "#16A34A",
+    "description": "Drift VPN — Fast & Secure",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
