@@ -4,13 +4,13 @@ import 'package:flutter/services.dart';
 abstract class Constants {
   static const appName = "Drift";
   static const githubUrl = "https://github.com/Chieff79/Drift";
-  static const licenseUrl = "https://github.com/hiddify/hiddify-next?tab=License-1-ov-file#readme";
+  static const licenseUrl = "https://github.com/Chieff79/Drift?tab=License-1-ov-file#readme";
   static const githubReleasesApiUrl = "https://api.github.com/repos/Chieff79/Drift/releases";
   static const githubLatestReleaseUrl = "https://github.com/Chieff79/Drift/releases/latest";
   static const appCastUrl = "https://raw.githubusercontent.com/Chieff79/Drift/main/appcast.xml";
   static const telegramChannelUrl = "https://t.me/driftvpn";
-  static const privacyPolicyUrl = "https://hiddify.com/privacy-policy/";
-  static const termsAndConditionsUrl = "https://hiddify.com/terms/";
+  static const privacyPolicyUrl = "https://github.com/Chieff79/Drift/blob/main/PRIVACY.md";
+  static const termsAndConditionsUrl = "https://github.com/Chieff79/Drift/blob/main/TERMS.md";
   static const cfWarpPrivacyPolicy = "https://www.cloudflare.com/application/privacypolicy/";
   static const cfWarpTermsOfService = "https://www.cloudflare.com/application/terms/";
 }
