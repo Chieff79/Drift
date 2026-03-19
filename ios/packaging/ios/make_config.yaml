@@ -1,18 +1,16 @@
-display_name: Hiddify
+display_name: Drift VPN
 
 icon: ..\..\assets\images\windows.ico
 
 keywords:
-  - Hiddify
-  - Proxy
+  - Drift
   - VPN
+  - Proxy
   - V2ray
-  - Nekoray
-  - Xray
-  - Psiphon
-  - OpenVPN
+  - VLESS
+  - WireGuard
 
-generic_name: Hiddify
+generic_name: Drift VPN
 
 actions:
   - name: Start
@@ -29,14 +27,4 @@ categories:
 
 startup_notify: true
 
-# You can specify the shared libraries that you want to bundle with your app
-#
-# flutter_distributor automatically detects the shared libraries that your app
-# depends on, but you can also specify them manually here.
-# 
-# The following example shows how to bundle the libcurl library with your app.
-#
-# include:
-#   - libcurl.so.4
 include: []
-
