@@ -63,7 +63,7 @@ Name: "{userstartup}\\{{DISPLAY_NAME}}"; Filename: "{app}\\{{EXECUTABLE_NAME}}";
 Filename: "{app}\\{{EXECUTABLE_NAME}}"; Description: "{cm:LaunchProgram,{{DISPLAY_NAME}}}"; Flags: {% if PRIVILEGES_REQUIRED == 'admin' %}runascurrentuser{% endif %} nowait postinstall skipifsilent
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{userappdata}\Hiddify"
+Type: filesandordirs; Name: "{userappdata}\Drift"
 
 [Code]
 function InitializeSetup(): Boolean;
@@ -71,7 +71,7 @@ var
   ResultCode: Integer;
 begin
   Exec('taskkill', '/F /IM hiddify.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
-  Exec('net', 'stop "HiddifyTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
-  Exec('sc.exe', 'delete "HiddifyTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+  Exec('net', 'stop "DriftTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+  Exec('sc.exe', 'delete "DriftTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Result := True;
 end;
