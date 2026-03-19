@@ -301,11 +301,11 @@ windows-zip-release:
 	$(YELLOW)Post-processing Windows portable$(DONE); \
 	cd "$$ZIP_DIR"; \
 	$(BLUE)Extracting and Repacking...$(DONE); \
-	mkdir -p Hiddify; \
-	unzip -q "$$ZIP_FILE" -d Hiddify/; \
+	mkdir -p Drift; \
+	unzip -q "$$ZIP_FILE" -d Drift/; \
 	rm "$$ZIP_FILE"; \
-	tar -a -cf "$$FILE_NAME.zip" Hiddify; \
-	rm -rf Hiddify; \
+	tar -a -cf "$$FILE_NAME.zip" Drift; \
+	rm -rf Drift; \
 	$(GREEN)Successful$(DONE)
 
 windows-exe-release:

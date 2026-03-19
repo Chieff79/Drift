@@ -34,6 +34,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>drift</string>
 				<string>hiddify</string>
 				<string>v2ray</string>
 				<string>v2rayn</string>
@@ -45,7 +46,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.hiddify.ios</string>
+			<string>com.drift.vpn</string>
 		</dict>
 	</array>
 	<key>FlutterDeepLinkingEnabled</key>
