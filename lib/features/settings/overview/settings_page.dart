@@ -151,6 +151,16 @@ class SettingsPage extends HookConsumerWidget {
             icon: Icons.route_rounded,
             namedLocation: context.namedLocation('routeOptions'),
           ),
+          if (PlatformUtils.isAndroid)
+            Material(
+              child: ListTile(
+                leading: const Icon(Icons.call_split_rounded),
+                title: const Text('Split Tunneling'),
+                subtitle: const Text('Выбрать приложения для VPN'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.goNamed('perAppProxy'),
+              ),
+            ),
           SettingsSection(
             title: t.pages.settings.dns.title,
             icon: Icons.dns_rounded,

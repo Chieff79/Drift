@@ -40,25 +40,32 @@ class SpeedServer {
 /// Primary: user's own Marzban VPS nodes.
 /// Fallbacks: public CDN endpoints that work in Russia.
 class SpeedServers {
-  // ── User's own servers (aeza.net) ──────────────────────────────────────────
-  // TODO: replace with real IPs once Marzban is located
-  // These will run LibreSpeed (lightweight PHP) on port 443 via nginx
+  // ── User's own servers (aeza.net) — LibreSpeed on port 8880 ─────────────
   static const driftNl = SpeedServer(
     name: 'Drift NL',
     city: 'Amsterdam',
     countryCode: 'NL',
-    pingUrl: 'https://nl.drift-vpn.net/speed/backend/empty.php',
-    downloadUrl: 'https://nl.drift-vpn.net/speed/backend/garbage.php?ckSize=100',
-    uploadUrl: 'https://nl.drift-vpn.net/speed/backend/empty.php',
+    pingUrl: 'http://62.60.235.92:8880/backend/empty.php',
+    downloadUrl: 'http://62.60.235.92:8880/backend/garbage.php?ckSize=100',
+    uploadUrl: 'http://62.60.235.92:8880/backend/empty.php',
   );
 
   static const driftRu = SpeedServer(
     name: 'Drift RU',
     city: 'Москва',
     countryCode: 'RU',
-    pingUrl: 'https://ru.drift-vpn.net/speed/backend/empty.php',
-    downloadUrl: 'https://ru.drift-vpn.net/speed/backend/garbage.php?ckSize=100',
-    uploadUrl: 'https://ru.drift-vpn.net/speed/backend/empty.php',
+    pingUrl: 'http://217.144.184.135:8880/backend/empty.php',
+    downloadUrl: 'http://217.144.184.135:8880/backend/garbage.php?ckSize=100',
+    uploadUrl: 'http://217.144.184.135:8880/backend/empty.php',
+  );
+
+  static const driftUs = SpeedServer(
+    name: 'Drift US',
+    city: 'New York',
+    countryCode: 'US',
+    pingUrl: 'http://213.165.50.230:8880/backend/empty.php',
+    downloadUrl: 'http://213.165.50.230:8880/backend/garbage.php?ckSize=100',
+    uploadUrl: 'http://213.165.50.230:8880/backend/empty.php',
   );
 
   // ── Public fallbacks — Russia-accessible ───────────────────────────────────
@@ -82,7 +89,7 @@ class SpeedServers {
     uploadUrl: 'https://speed.cloudflare.com/__up',
   );
 
-  static const all = [driftNl, driftRu, cloudflare];
+  static const all = [driftNl, driftRu, driftUs, cloudflare];
 }
 
 class SpeedTestService {

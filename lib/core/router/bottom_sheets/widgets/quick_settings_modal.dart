@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
+import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class QuickSettingsModal extends HookConsumerWidget {
@@ -57,6 +58,18 @@ class QuickSettingsModal extends HookConsumerWidget {
                 },
               ),
             ),
+            // ── Split Tunneling (Android only) ──────────────────────────────
+            if (PlatformUtils.isAndroid)
+              ListTile(
+                leading: const Icon(Icons.call_split_rounded),
+                title: const Text('Split Tunneling'),
+                subtitle: const Text('Выбрать приложения', style: TextStyle(fontSize: 12)),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  context.pop();
+                  context.goNamed('perAppProxy');
+                },
+              ),
             // ── WARP ────────────────────────────────────────────────────────
             ListTile(
               leading: const Icon(Icons.cloud_rounded),
