@@ -15,6 +15,7 @@ import 'package:hiddify/core/model/environment.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/preferences/preferences_migration.dart';
 import 'package:hiddify/core/preferences/preferences_provider.dart';
+import 'package:hiddify/core/notifications/notification_service.dart';
 import 'package:hiddify/features/app/widget/app.dart';
 import 'package:hiddify/features/auto_start/notifier/auto_start_notifier.dart';
 
@@ -46,6 +47,12 @@ Future<void> lazyBootstrap(WidgetsBinding widgetsBinding, Environment env) async
 
   final appInfo = await _init("app info", () => container.read(appInfoProvider.future));
   await _init("preferences", () => container.read(sharedPreferencesProvider.future));
+
+  await _safeInit("notifications", () async {
+    final notif = container.read(notificationServiceProvider);
+    await notif.init();
+    await notif.requestPermission();
+  }, timeout: 2000);
 
   final enableAnalytics = await container.read(analyticsControllerProvider.future);
   if (enableAnalytics) {

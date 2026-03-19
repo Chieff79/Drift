@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:hiddify/core/haptic/haptic_service.dart';
 import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/core/notifications/notification_service.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/features/connection/data/connection_data_providers.dart';
@@ -32,9 +33,14 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
 
     listenSelf((previous, next) async {
       if (previous == next) return;
+      final notifications = ref.read(notificationServiceProvider);
+
       if (previous case AsyncData(:final value) when !value.isConnected) {
         if (next case AsyncData(value: final Connected _)) {
           await ref.read(hapticServiceProvider.notifier).heavyImpact();
+          final profile = ref.read(activeProfileProvider).asData?.value;
+          final serverName = profile?.name ?? 'Drift VPN';
+          await notifications.showConnected(serverName);
 
           if (Platform.isAndroid && !ref.read(Preferences.storeReviewedByUser)) {
             if (await InAppReview.instance.isAvailable()) {
@@ -42,6 +48,16 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
               ref.read(Preferences.storeReviewedByUser.notifier).update(true);
             }
           }
+        }
+      }
+
+      if (next case AsyncData(value: final Disconnected disconnected)) {
+        if (disconnected.connectionFailure != null) {
+          await notifications.showConnectionError(
+            disconnected.connectionFailure!.present(ref.read(translationsProvider).requireValue),
+          );
+        } else if (previous case AsyncData(value: final Connected _)) {
+          await notifications.showDisconnected();
         }
       }
     });
