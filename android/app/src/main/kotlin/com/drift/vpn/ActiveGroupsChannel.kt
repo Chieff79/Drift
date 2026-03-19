@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 //    CommandClient.Handler {
 //    companion object {
 //        const val TAG = "A/ActiveGroupsChannel"
-//        const val CHANNEL = "com.hiddify.app/active-groups"
+//        const val CHANNEL = "com.drift.vpn/active-groups"
 //        val gson = Gson()
 //    }
 //
