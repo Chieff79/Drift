@@ -1,0 +1,20 @@
+{
+  "profiles": [
+    {
+      "region": [],
+      "title": {
+        "en": "Drift VPN",
+        "fa": "Drift VPN"
+      },
+      "sublink": "https://62.60.235.92:8443/sub/ZHJpZnRfdGVzdCwxNzczOTI4MDIzboO7EyrnRQ",
+      "tags": {
+        "en": ["NL", "RU", "US"],
+        "fa": ["NL", "RU", "US"]
+      },
+      "consent": {
+        "en": "By connecting you agree to Drift VPN terms of service. This is a shared test account.",
+        "fa": "با اتصال، با شرایط خدمات Drift VPN موافقت می‌کنید."
+      }
+    }
+  ]
+}
