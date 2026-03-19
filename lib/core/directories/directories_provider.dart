@@ -71,7 +71,7 @@ class AppDirectories extends _$AppDirectories with InfraLogger {
 
   static Directory getPortableDirectory() {
     final exeDir = File(Platform.resolvedExecutable).parent;
-    return Directory(p.join(exeDir.path, 'hiddify_portable_data'));
+    return Directory(p.join(exeDir.path, 'drift_portable_data'));
   }
 
   static Future<bool> checkDirectoryAccess(Directory dir) async {
