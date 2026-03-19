@@ -70,7 +70,7 @@ function InitializeSetup(): Boolean;
 var
   ResultCode: Integer;
 begin
-  Exec('taskkill', '/F /IM hiddify.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+  Exec('taskkill', '/F /IM drift.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('net', 'stop "DriftTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Exec('sc.exe', 'delete "DriftTunnelService"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   Result := True;
