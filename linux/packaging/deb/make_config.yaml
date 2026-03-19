@@ -1,8 +1,8 @@
-display_name: Hiddify
-package_name: hiddify
+display_name: Drift VPN
+package_name: drift-vpn
 maintainer:
-  name: hiddify
-  email: linux@hiddify.com
+  name: Drift VPN
+  email: support@drift-vpn.app
 
 priority: optional
 section: x11
@@ -10,45 +10,33 @@ installed_size: 6604
 essential: false
 icon: assets/images/source/ic_launcher_border.png
 
-# Post-installation tasks:
-# 1. Inject StartupWMClass into the system .desktop file for correct icon association
-# 2. Remove conflicting hiddify.desktop files from users' .local directories (cleanup AppImage artifacts)
-# 3. Update the desktop database to apply changes immediately
 postinstall_scripts:
-  - echo "Setting up Hiddify..."
-  - sudo sed -i '/^\[Desktop Entry\]/a StartupWMClass=app.hiddify.com' "/usr/share/applications/hiddify.desktop"
-  - echo "Search and remove hiddify.desktop from .local"
-  - for user_dir in /home/*; do if [ -f "$user_dir/.local/share/applications/hiddify.desktop" ]; then rm -f "$user_dir/.local/share/applications/hiddify.desktop"; echo "Found and removed hiddify.desktop from $user_dir .local"; fi; done
+  - echo "Setting up Drift VPN..."
+  - sudo sed -i '/^\[Desktop Entry\]/a StartupWMClass=com.drift.vpn' "/usr/share/applications/drift.desktop"
+  - for user_dir in /home/*; do if [ -f "$user_dir/.local/share/applications/drift.desktop" ]; then rm -f "$user_dir/.local/share/applications/drift.desktop"; fi; done
   - update-desktop-database /usr/share/applications
-  - echo "Hiddify is ready to use :)"
+  - echo "Drift VPN is ready to use :)"
 
-# Post-uninstallation tasks:
-# 1. Iterate through all user directories to remove Hiddify configuration and data
-# 2. Clean up root user data to ensure a clean removal
 postuninstall_scripts:
-  - echo "Removing Hiddify user data..."
-  - for user_dir in /home/*; do if [ -d "$user_dir/.local/share/hiddify" ]; then rm -rf "$user_dir/.local/share/hiddify"; echo "Removed data from $user_dir"; fi; done
-  - rm -rf /root/.local/share/hiddify
-  - echo "Hiddify data cleanup complete."
+  - echo "Removing Drift VPN user data..."
+  - for user_dir in /home/*; do if [ -d "$user_dir/.local/share/drift" ]; then rm -rf "$user_dir/.local/share/drift"; fi; done
+  - rm -rf /root/.local/share/drift
+  - echo "Drift VPN data cleanup complete."
 
 keywords:
-  - Hiddify
-  - Proxy
+  - Drift
   - VPN
+  - Proxy
   - V2ray
-  - Nekoray
-  - Xray
-  - Psiphon
-  - OpenVPN
+  - VLESS
+  - WireGuard
 
-generic_name: Hiddify
+generic_name: Drift VPN
 
 categories:
   - Network
 
 startup_notify: true
-# app_links setup for Linux
-# https://github.com/llfbandit/app_links/blob/master/doc/README_linux.md
 supported_mime_type:
   - x-scheme-handler/hiddify
   - x-scheme-handler/v2ray
