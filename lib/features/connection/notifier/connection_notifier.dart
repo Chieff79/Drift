@@ -53,8 +53,9 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
 
       if (next case AsyncData(value: final Disconnected disconnected)) {
         if (disconnected.connectionFailure != null) {
+          final err = disconnected.connectionFailure!.present(ref.read(translationsProvider).requireValue);
           await notifications.showConnectionError(
-            disconnected.connectionFailure!.present(ref.read(translationsProvider).requireValue),
+            err.message ?? err.type,
           );
         } else if (previous case AsyncData(value: final Connected _)) {
           await notifications.showDisconnected();
