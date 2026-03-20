@@ -36,7 +36,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>drift</string>
-				<string>hiddify</string>
 				<string>v2ray</string>
 				<string>v2rayn</string>
 				<string>v2rayng</string>
