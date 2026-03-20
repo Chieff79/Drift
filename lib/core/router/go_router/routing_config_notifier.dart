@@ -41,18 +41,18 @@ final branchesScope = <String, FocusScopeNode>{
 
 // when the routing config is not yet initialized, this config is used
 final loadingConfig = RoutingConfig(
-  routes: <RouteBase>[GoRoute(path: '/speedtest', builder: (context, state) => const Material())],
+  routes: <RouteBase>[GoRoute(path: '/home', builder: (context, state) => const Material())],
 );
 
 String getNameOfBranch(bool isMobileBreakpoint, bool showProfilesAction, int index) => isMobileBreakpoint
-    ? ['speedtest', 'home', 'settings'][index]
-    : ['speedtest', 'home', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'][index];
+    ? ['home', 'speedtest', 'settings'][index]
+    : ['home', 'speedtest', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'][index];
 
 int getIndexOfBranch(bool isMobileBreakpoint, bool showProfilesAction, String name) => isMobileBreakpoint
-    ? ['speedtest', 'home', 'settings'].indexOf(name)
+    ? ['home', 'speedtest', 'settings'].indexOf(name)
     : [
-        'speedtest',
         'home',
+        'speedtest',
         if (showProfilesAction) 'profiles',
         'settings',
         'logs',
@@ -93,12 +93,12 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
             WidgetsBinding.instance.addPostFrameCallback(
               (_) => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(url: url),
             );
-          return '/speedtest';
+          return '/home';
         } else if (url != null) {
           WidgetsBinding.instance.addPostFrameCallback(
             (_) => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(url: url),
           );
-          return '/speedtest';
+          return '/home';
         }
         return null;
       },
@@ -110,17 +110,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
             showProfilesAction: showProfilesAction,
           ),
           branches: <StatefulShellBranch>[
-            // Tab 1: Speed Test (DEFAULT)
-            StatefulShellBranch(
-              routes: <GoRoute>[
-                GoRoute(
-                  name: 'speedtest',
-                  path: '/speedtest',
-                  builder: (_, _) => FocusScope(node: branchesScope['speedtest'], child: const SpeedTestPage()),
-                ),
-              ],
-            ),
-            // Tab 2: VPN (Home)
+            // Tab 1: VPN (Home) - DEFAULT
             StatefulShellBranch(
               routes: <GoRoute>[
                 GoRoute(
@@ -145,6 +135,16 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
                         ),
                       ),
                   ],
+                ),
+              ],
+            ),
+            // Tab 2: Speed Test
+            StatefulShellBranch(
+              routes: <GoRoute>[
+                GoRoute(
+                  name: 'speedtest',
+                  path: '/speedtest',
+                  builder: (_, _) => FocusScope(node: branchesScope['speedtest'], child: const SpeedTestPage()),
                 ),
               ],
             ),

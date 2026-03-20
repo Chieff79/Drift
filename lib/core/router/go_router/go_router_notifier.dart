@@ -16,12 +16,12 @@ class GoRouterNotifer extends _$GoRouterNotifer {
   GoRouter build() {
     ref.listen(routingConfigNotifierProvider, (_, next) => rConfig.value = next);
     return GoRouter.routingConfig(
-      initialLocation: '/speedtest',
+      initialLocation: '/home',
       navigatorKey: rootNavKey,
       routingConfig: rConfig,
       refreshListenable: RefreshListenable(ref),
       errorBuilder: (context, state) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => context.goNamed('speedtest'));
+        WidgetsBinding.instance.addPostFrameCallback((_) => context.goNamed('home'));
         return const Material();
       },
     );
