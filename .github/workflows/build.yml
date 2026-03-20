@@ -22,7 +22,7 @@ env:
   TARGET_NAME_gz: "Drift-Linux-x64-AppImage.tar"
   TARGET_NAME_AppImage: "Drift-Linux-x64-AppImage"
   TARGET_NAME_deb: "Drift-Debian-x64"
-  # TARGET_NAME_rpm: "Hiddify-rpm-x64"
+  # TARGET_NAME_rpm: "Drift-rpm-x64"
   TARGET_NAME_apk: "Drift-Android"
   TARGET_NAME_aab: "Drift-Android"
   TARGET_NAME_exe: "Drift-Windows-Setup-x64"
@@ -330,7 +330,7 @@ jobs:
         run: |
           mkdir out
           ls -R ./build/app/outputs
-          cp ./build/app/outputs/bundle/release/app-release.aab out/hiddify-android-market.aab || echo "no aab"
+          cp ./build/app/outputs/bundle/release/app-release.aab out/drift-android-market.aab || echo "no aab"
 
       - name: Copy to out unix
         if: startsWith(matrix.platform,'linux') || matrix.platform == 'macos' || matrix.platform == 'ios'
@@ -447,7 +447,7 @@ jobs:
           ls -R ./out
           ls -R ./.github/
           ls -R ./.git/
-          mv out/hiddify-android-market.aab  hiddify-android-market.aab
+          mv out/drift-android-market.aab  drift-android-market.aab
 
       - name: prepare_release_message
         run: |
@@ -474,7 +474,7 @@ jobs:
           serviceAccountJson: service_account.json
           packageName: com.drift.vpn
           releaseName: ${{ env.TAG_NAME }}
-          releaseFiles: ./hiddify-android-market.aab
+          releaseFiles: ./drift-android-market.aab
           track: 'beta'
 
 
