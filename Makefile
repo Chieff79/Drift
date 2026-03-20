@@ -65,7 +65,7 @@ BUILD_ARGS=--dart-define sentry_dsn=$(SENTRY_DSN)
 
 # Auto build number: use BUILD_NUMBER env var from CI if set, otherwise use pubspec default
 ifdef BUILD_NUMBER
-DISTRIBUTOR_ARGS=--skip-clean --build-target $(TARGET) --build-dart-define sentry_dsn=$(SENTRY_DSN) --build-number $(BUILD_NUMBER)
+DISTRIBUTOR_ARGS=--skip-clean --build-target $(TARGET) --build-dart-define sentry_dsn=$(SENTRY_DSN) --flutter-build-args "build-number=$(BUILD_NUMBER)"
 else
 DISTRIBUTOR_ARGS=--skip-clean --build-target $(TARGET) --build-dart-define sentry_dsn=$(SENTRY_DSN)
 endif
