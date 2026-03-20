@@ -31,7 +31,7 @@ env:
   TARGET_NAME_dmg: "Drift-MacOS"
   TARGET_NAME_pkg: "Drift-MacOS-Installer"
   TARGET_NAME_ipa: "Drift-iOS"
-  
+  BUILD_NUMBER_RAW: ${{ github.run_number }}
 
 jobs:
   test:
@@ -248,13 +248,19 @@ jobs:
           make ${{ matrix.platform }}-prepare
 
 
+      - name: Compute build number
+        run: |
+          BUILD_NUMBER=$((40000 + ${{ env.BUILD_NUMBER_RAW }} * 10 + ${{ github.run_attempt }}))
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "Auto build number: $BUILD_NUMBER"
+
       - name: Build ${{ matrix.platform }}
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           echo "=== Build Environment ==="
           echo "CHANNEL=${{ env.CHANNEL }}"
-          echo "SENTRY_DSN length=${#SENTRY_DSN}"
+          echo "BUILD_NUMBER=${{ env.BUILD_NUMBER }}"
           echo "Platform=${{ matrix.platform }}"
           echo "=== Starting build ==="
           make ${{ matrix.platform }}-release 2>&1 || {
@@ -530,6 +536,13 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{secrets.APPLE_DIST_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
 
+      - name: Verify IPA build number
+        if: steps.check_ipa.outputs.exists == 'true'
+        run: |
+          echo "=== Checking CFBundleVersion in IPA ==="
+          unzip -p out/Drift-iOS.ipa Payload/*.app/Info.plist | plutil -p - | grep -i "CFBundleVersion\|CFBundleShortVersion"
+          echo "=== Expected BUILD_NUMBER: ${{ env.BUILD_NUMBER }} ==="
+
       - name: Upload to TestFlight
         if: steps.check_ipa.outputs.exists == 'true'
         env:
@@ -538,12 +551,8 @@ jobs:
           API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
         run: |
           mkdir -p ~/private_keys
-          echo "$API_PRIVATE_KEY" > ~/private_keys/AuthKey_${API_KEY_ID}.p8
-          echo "=== Key file info ==="
-          wc -l ~/private_keys/AuthKey_${API_KEY_ID}.p8
-          head -1 ~/private_keys/AuthKey_${API_KEY_ID}.p8
-          tail -1 ~/private_keys/AuthKey_${API_KEY_ID}.p8
-          echo "=== Uploading IPA ==="
+          printf "%s" "$API_PRIVATE_KEY" > ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          echo "=== Uploading IPA to TestFlight ==="
           xcrun altool --upload-app \
             -f out/Drift-iOS.ipa \
             -t ios \
