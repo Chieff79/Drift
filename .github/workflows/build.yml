@@ -249,6 +249,7 @@ jobs:
 
 
       - name: Compute build number
+        shell: bash
         run: |
           BUILD_NUMBER=$((40000 + ${{ env.BUILD_NUMBER_RAW }} * 10 + ${{ github.run_attempt }}))
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
