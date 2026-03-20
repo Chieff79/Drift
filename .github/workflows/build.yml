@@ -252,7 +252,20 @@ jobs:
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
-          make ${{ matrix.platform }}-release
+          echo "=== Build Environment ==="
+          echo "CHANNEL=${{ env.CHANNEL }}"
+          echo "SENTRY_DSN length=${#SENTRY_DSN}"
+          echo "Platform=${{ matrix.platform }}"
+          echo "=== Starting build ==="
+          make ${{ matrix.platform }}-release 2>&1 || {
+            echo "=== BUILD FAILED ==="
+            echo "Exit code: $?"
+            echo "=== Listing dist/ ==="
+            ls -R dist/ 2>/dev/null || echo "No dist/ directory"
+            echo "=== Listing build/ ==="
+            ls -R build/ 2>/dev/null | head -50 || echo "No build/ directory"
+            exit 2
+          }
 
       - name: Code Sign
         if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') }}
