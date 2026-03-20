@@ -530,10 +530,23 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{secrets.APPLE_DIST_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
 
-      - uses: Apple-Actions/upload-testflight-build@v4
+      - name: Upload to TestFlight
         if: steps.check_ipa.outputs.exists == 'true'
-        with:
-          app-path: 'out/Drift-iOS.ipa'
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        env:
+          API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$API_PRIVATE_KEY" > ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          echo "=== Key file info ==="
+          wc -l ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          head -1 ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          tail -1 ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          echo "=== Uploading IPA ==="
+          xcrun altool --upload-app \
+            -f out/Drift-iOS.ipa \
+            -t ios \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID" \
+            --verbose
