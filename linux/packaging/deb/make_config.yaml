@@ -47,4 +47,4 @@ supported_mime_type:
   - x-scheme-handler/clashmeta
   - x-scheme-handler/sing-box
 
-metainfo: linux/packaging/app.hiddify.com.appdata.xml
+metainfo: linux/packaging/com.drift.vpn.appdata.xml

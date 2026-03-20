@@ -39,4 +39,4 @@ supported_mime_type:
 
 include: []
 
-metainfo: linux/packaging/app.hiddify.com.appdata.xml
+metainfo: linux/packaging/com.drift.vpn.appdata.xml
