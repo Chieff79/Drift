@@ -41,7 +41,6 @@
 
   <mime-types>
     <mime-type>x-scheme-handler/drift</mime-type>
-    <mime-type>x-scheme-handler/hiddify</mime-type>
     <mime-type>x-scheme-handler/v2ray</mime-type>
     <mime-type>x-scheme-handler/v2rayn</mime-type>
     <mime-type>x-scheme-handler/v2rayng</mime-type>

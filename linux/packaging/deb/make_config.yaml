@@ -39,7 +39,6 @@ categories:
 startup_notify: true
 supported_mime_type:
   - x-scheme-handler/drift
-  - x-scheme-handler/hiddify
   - x-scheme-handler/v2ray
   - x-scheme-handler/v2rayn
   - x-scheme-handler/v2rayng
