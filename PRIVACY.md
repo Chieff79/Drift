@@ -1,6 +1,6 @@
 # Privacy Policy — Drift VPN
 
-**Last updated: March 2025**
+**Last updated: March 2026**
 
 ## Overview
 
@@ -23,7 +23,7 @@ If you enable analytics, we collect anonymous crash reports via Sentry to improv
 You can disable this in Settings → Analytics.
 
 ### VPN Connection
-- Your VPN traffic passes through our servers (NL, RU, US)
+- Your VPN traffic passes through our servers (NL, RU, US, KZ)
 - We do not log traffic content or destinations
 - Temporary connection metadata (timestamps) may be kept for up to 24 hours for abuse prevention
 

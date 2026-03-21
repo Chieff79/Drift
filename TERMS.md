@@ -1,6 +1,6 @@
 # Terms of Service — Drift VPN
 
-**Last updated: March 2025**
+**Last updated: March 2026**
 
 ## Acceptance
 
@@ -23,7 +23,7 @@ You may NOT use Drift VPN to:
 
 ## Service
 
-- We provide VPN servers in NL, RU, and US locations
+- We provide VPN servers in NL, RU, US, and KZ locations
 - We may change or discontinue servers with notice
 - Service is provided "as-is" without uptime guarantees
 
