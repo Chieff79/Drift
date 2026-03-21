@@ -339,13 +339,147 @@ jobs:
           ls -R ./build/app/outputs
           cp ./build/app/outputs/bundle/release/app-release.aab out/drift-android-market.aab || echo "no aab"
 
+      - name: Import macOS Developer ID Certificates
+        if: matrix.platform == 'macos' && env.UPLOAD_ARTIFACT == 'true'
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_INST_P12: ${{ secrets.MACOS_INSTALLER_P12 }}
+          MACOS_CERT_PASS: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain for Developer ID certs
+          KEYCHAIN_PATH=$RUNNER_TEMP/devid-signing.keychain-db
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import Developer ID Application certificate
+          echo "$MACOS_CERT_P12" | base64 --decode > /tmp/devid_app.p12
+          security import /tmp/devid_app.p12 -P "$MACOS_CERT_PASS" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          # Import Developer ID Installer certificate
+          echo "$MACOS_INST_P12" | base64 --decode > /tmp/devid_installer.p12
+          security import /tmp/devid_installer.p12 -P "$MACOS_CERT_PASS" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+
+          # Add keychain to search list
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Verify certificates
+          echo "=== Developer ID certificates ==="
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          security find-identity -v "$KEYCHAIN_PATH"
+
+          # Cleanup temp files
+          rm -f /tmp/devid_app.p12 /tmp/devid_installer.p12
+
+      - name: Sign and Notarize macOS app
+        if: matrix.platform == 'macos' && env.UPLOAD_ARTIFACT == 'true'
+        env:
+          API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          echo "=== Finding Developer ID identity ==="
+          IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)".*/\1/' || echo "")
+          INSTALLER_IDENTITY=$(security find-identity -v | grep "Developer ID Installer" | head -1 | sed 's/.*"\(.*\)".*/\1/' || echo "")
+
+          if [ -z "$IDENTITY" ]; then
+            echo "⚠️ No Developer ID Application certificate found, skipping signing & notarization"
+            exit 0
+          fi
+
+          echo "=== Signing identity: $IDENTITY ==="
+          echo "=== Installer identity: $INSTALLER_IDENTITY ==="
+
+          # Find the .app in dist/
+          APP_PATH=$(find dist -name "*.app" -type d | head -1)
+          echo "=== App path: $APP_PATH ==="
+
+          if [ -z "$APP_PATH" ]; then
+            echo "⚠️ No .app found in dist/, skipping"
+            exit 0
+          fi
+
+          # Deep sign the .app with hardened runtime
+          echo "=== Signing .app with Developer ID ==="
+          codesign --deep --force --verify --verbose \
+            --options runtime \
+            --sign "$IDENTITY" \
+            "$APP_PATH"
+
+          echo "=== Verifying signature ==="
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
+          # Create a ZIP for notarization
+          echo "=== Creating ZIP for notarization ==="
+          APP_NAME=$(basename "$APP_PATH")
+          ditto -c -k --keepParent "$APP_PATH" "/tmp/drift-notarize.zip"
+
+          # Setup API key for notarytool
+          mkdir -p ~/private_keys
+          printf "%s" "$API_PRIVATE_KEY" > ~/private_keys/AuthKey_${API_KEY_ID}.p8
+
+          # Submit for notarization
+          echo "=== Submitting for notarization ==="
+          xcrun notarytool submit "/tmp/drift-notarize.zip" \
+            --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+            --key-id "$API_KEY_ID" \
+            --issuer "$API_ISSUER_ID" \
+            --wait --timeout 30m
+
+          # Staple the notarization ticket to the app
+          echo "=== Stapling notarization ticket ==="
+          xcrun stapler staple "$APP_PATH"
+
+          # Re-create DMG with signed & notarized app
+          echo "=== Rebuilding DMG with notarized app ==="
+          DMG_PATH=$(find dist -name "*.dmg" | head -1)
+          if [ -n "$DMG_PATH" ]; then
+            DMG_NAME=$(basename "$DMG_PATH")
+            DMG_DIR=$(dirname "$DMG_PATH")
+            rm -f "$DMG_PATH"
+            hdiutil create -volname "Drift VPN" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
+            # Sign the DMG
+            codesign --force --sign "$IDENTITY" "$DMG_PATH"
+            # Notarize the DMG
+            xcrun notarytool submit "$DMG_PATH" \
+              --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+              --key-id "$API_KEY_ID" \
+              --issuer "$API_ISSUER_ID" \
+              --wait --timeout 30m
+            xcrun stapler staple "$DMG_PATH"
+            echo "✅ DMG signed and notarized: $DMG_PATH"
+          fi
+
+          # Sign PKG if exists
+          PKG_PATH=$(find dist -name "*.pkg" | head -1)
+          if [ -n "$PKG_PATH" ] && [ -n "$INSTALLER_IDENTITY" ]; then
+            echo "=== Signing PKG with Developer ID Installer ==="
+            PKG_NAME=$(basename "$PKG_PATH")
+            productsign --sign "$INSTALLER_IDENTITY" "$PKG_PATH" "/tmp/signed-${PKG_NAME}"
+            mv "/tmp/signed-${PKG_NAME}" "$PKG_PATH"
+            # Notarize PKG
+            xcrun notarytool submit "$PKG_PATH" \
+              --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+              --key-id "$API_KEY_ID" \
+              --issuer "$API_ISSUER_ID" \
+              --wait --timeout 30m
+            xcrun stapler staple "$PKG_PATH"
+            echo "✅ PKG signed and notarized: $PKG_PATH"
+          fi
+
+          # Cleanup
+          rm -f /tmp/drift-notarize.zip
+          rm -rf ~/private_keys
+
       - name: Copy to out unix
         if: startsWith(matrix.platform,'linux') || matrix.platform == 'macos' || matrix.platform == 'ios'
         run: |
           ls -R dist/
           mkdir out
           mkdir tmp_out
-          
+
           for EXT in $(echo ${{ matrix.targets }} | tr ',' '\n'); do
             KEY=TARGET_NAME_${EXT}
             FILENAME=${!KEY}
@@ -383,6 +517,7 @@ jobs:
         if: ${{ always() && startsWith(matrix.os,'macos')}}
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db ||echo ok
+          security delete-keychain $RUNNER_TEMP/devid-signing.keychain-db ||echo ok
           rm ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision ||echo ok
   update-draft:
     permissions: write-all
