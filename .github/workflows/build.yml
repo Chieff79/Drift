@@ -417,22 +417,27 @@ jobs:
               cp -R "$APP_IN_DMG" "/tmp/$APP_NAME"
               hdiutil detach "$MOUNT_POINT" -quiet
 
-              # Sign each framework individually with hardened runtime
+              # Entitlements file for hardened runtime
+              ENTITLEMENTS="${GITHUB_WORKSPACE}/macos/Runner/DevID.entitlements"
+              echo "=== Using entitlements: $ENTITLEMENTS ==="
+              cat "$ENTITLEMENTS"
+
+              # Sign each framework individually with hardened runtime + entitlements
               echo "=== Signing nested frameworks ==="
               find "/tmp/$APP_NAME/Contents/Frameworks" -name "*.framework" -o -name "*.dylib" | while read fw; do
                 echo "Signing: $fw"
-                codesign --force --options runtime --sign "$IDENTITY" "$fw" 2>/dev/null || true
+                codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$fw" 2>/dev/null || true
               done
 
               # Sign helper apps
               find "/tmp/$APP_NAME/Contents" -name "*.app" -not -path "/tmp/$APP_NAME" | while read helper; do
                 echo "Signing helper: $helper"
-                codesign --force --options runtime --sign "$IDENTITY" "$helper" 2>/dev/null || true
+                codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$helper" 2>/dev/null || true
               done
 
-              # Sign the main app
+              # Sign the main app with entitlements
               echo "=== Signing main .app with Developer ID ==="
-              codesign --force --options runtime --sign "$IDENTITY" "/tmp/$APP_NAME"
+              codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "/tmp/$APP_NAME"
 
               echo "=== Verifying signature ==="
               codesign --verify --deep --strict --verbose=2 "/tmp/$APP_NAME"
@@ -453,10 +458,10 @@ jobs:
               SUBMISSION_ID=$(echo "$NOTARIZE_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
               echo "=== Submission ID: $SUBMISSION_ID ==="
 
-              # Wait up to 15 minutes for notarization
+              # Wait up to 30 minutes for notarization
               if [ -n "$SUBMISSION_ID" ]; then
-                echo "=== Waiting for notarization (max 15 min) ==="
-                for i in $(seq 1 30); do
+                echo "=== Waiting for notarization (max 30 min) ==="
+                for i in $(seq 1 60); do
                   sleep 30
                   STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
                     --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
@@ -477,8 +482,8 @@ jobs:
                     echo "⚠️ Continuing with signed but not notarized DMG"
                     break
                   fi
-                  if [ $i -eq 30 ]; then
-                    echo "⚠️ Notarization still in progress after 15 min. Continuing with signed DMG."
+                  if [ $i -eq 60 ]; then
+                    echo "⚠️ Notarization still in progress after 30 min. Continuing with signed DMG."
                   fi
                 done
               fi

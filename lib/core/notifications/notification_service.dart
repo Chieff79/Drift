@@ -13,12 +13,16 @@ class NotificationService {
 
   Future<void> init() async {
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
+    const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
-    const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+    const settings = InitializationSettings(
+      android: androidSettings,
+      iOS: darwinSettings,
+      macOS: darwinSettings,
+    );
     await _plugin.initialize(settings);
   }
 
@@ -26,6 +30,10 @@ class NotificationService {
     if (Platform.isIOS) {
       await _plugin
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, badge: true, sound: false);
+    } else if (Platform.isMacOS) {
+      await _plugin
+          .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(alert: true, badge: true, sound: false);
     } else if (Platform.isAndroid) {
       await _plugin
@@ -54,6 +62,11 @@ class NotificationService {
           presentBadge: false,
           presentSound: false,
         ),
+        macOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: false,
+        ),
       ),
     );
   }
@@ -77,6 +90,11 @@ class NotificationService {
           presentBadge: false,
           presentSound: false,
         ),
+        macOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: false,
+        ),
       ),
     );
   }
@@ -96,6 +114,11 @@ class NotificationService {
           autoCancel: true,
         ),
         iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: false,
+        ),
+        macOS: const DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: false,
           presentSound: false,
