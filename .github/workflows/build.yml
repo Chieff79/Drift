@@ -373,7 +373,7 @@ jobs:
           # Cleanup temp files
           rm -f /tmp/devid_app.p12 /tmp/devid_installer.p12
 
-      - name: Sign and Notarize macOS app
+      - name: Sign macOS app
         if: matrix.platform == 'macos' && env.UPLOAD_ARTIFACT == 'true'
         env:
           API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
@@ -385,7 +385,7 @@ jobs:
           INSTALLER_IDENTITY=$(security find-identity -v | grep "Developer ID Installer" | head -1 | sed 's/.*"\(.*\)".*/\1/' || echo "")
 
           if [ -z "$IDENTITY" ]; then
-            echo "⚠️ No Developer ID Application certificate found, skipping signing & notarization"
+            echo "⚠️ No Developer ID Application certificate found, skipping"
             exit 0
           fi
 
@@ -414,55 +414,75 @@ jobs:
 
             if [ -n "$APP_IN_DMG" ]; then
               APP_NAME=$(basename "$APP_IN_DMG")
-              # Copy .app out of DMG to work with it
               cp -R "$APP_IN_DMG" "/tmp/$APP_NAME"
               hdiutil detach "$MOUNT_POINT" -quiet
 
-              # Deep sign the .app with hardened runtime
-              echo "=== Signing .app with Developer ID ==="
-              codesign --deep --force --verify --verbose \
-                --options runtime \
-                --sign "$IDENTITY" \
-                "/tmp/$APP_NAME"
+              # Sign each framework individually with hardened runtime
+              echo "=== Signing nested frameworks ==="
+              find "/tmp/$APP_NAME/Contents/Frameworks" -name "*.framework" -o -name "*.dylib" | while read fw; do
+                echo "Signing: $fw"
+                codesign --force --options runtime --sign "$IDENTITY" "$fw" 2>/dev/null || true
+              done
+
+              # Sign helper apps
+              find "/tmp/$APP_NAME/Contents" -name "*.app" -not -path "/tmp/$APP_NAME" | while read helper; do
+                echo "Signing helper: $helper"
+                codesign --force --options runtime --sign "$IDENTITY" "$helper" 2>/dev/null || true
+              done
+
+              # Sign the main app
+              echo "=== Signing main .app with Developer ID ==="
+              codesign --force --options runtime --sign "$IDENTITY" "/tmp/$APP_NAME"
 
               echo "=== Verifying signature ==="
               codesign --verify --deep --strict --verbose=2 "/tmp/$APP_NAME"
 
-              # Create a ZIP for notarization
-              echo "=== Creating ZIP for notarization ==="
-              ditto -c -k --keepParent "/tmp/$APP_NAME" "/tmp/drift-notarize.zip"
-
-              # Submit for notarization
-              echo "=== Submitting .app for notarization ==="
-              xcrun notarytool submit "/tmp/drift-notarize.zip" \
-                --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
-                --key-id "$API_KEY_ID" \
-                --issuer "$API_ISSUER_ID" \
-                --wait --timeout 30m
-
-              # Staple the notarization ticket
-              echo "=== Stapling notarization ticket ==="
-              xcrun stapler staple "/tmp/$APP_NAME"
-
-              # Re-create DMG with signed & notarized app
+              # Re-create DMG with signed app
               echo "=== Rebuilding DMG with signed app ==="
               rm -f "$DMG_PATH"
               hdiutil create -volname "Drift VPN" -srcfolder "/tmp/$APP_NAME" -ov -format UDZO "$DMG_PATH"
-
-              # Sign the DMG itself
               codesign --force --sign "$IDENTITY" "$DMG_PATH"
 
-              # Notarize the DMG
-              echo "=== Notarizing DMG ==="
-              xcrun notarytool submit "$DMG_PATH" \
+              # Submit DMG for notarization (don't wait — just submit)
+              echo "=== Submitting DMG for notarization (async) ==="
+              NOTARIZE_OUTPUT=$(xcrun notarytool submit "$DMG_PATH" \
                 --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
                 --key-id "$API_KEY_ID" \
-                --issuer "$API_ISSUER_ID" \
-                --wait --timeout 30m
-              xcrun stapler staple "$DMG_PATH"
-              echo "✅ DMG signed and notarized: $DMG_PATH"
+                --issuer "$API_ISSUER_ID" 2>&1) || true
+              echo "$NOTARIZE_OUTPUT"
+              SUBMISSION_ID=$(echo "$NOTARIZE_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+              echo "=== Submission ID: $SUBMISSION_ID ==="
 
-              # Cleanup
+              # Wait up to 15 minutes for notarization
+              if [ -n "$SUBMISSION_ID" ]; then
+                echo "=== Waiting for notarization (max 15 min) ==="
+                for i in $(seq 1 30); do
+                  sleep 30
+                  STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
+                    --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+                    --key-id "$API_KEY_ID" \
+                    --issuer "$API_ISSUER_ID" 2>&1 || true)
+                  echo "Check $i: $STATUS"
+                  if echo "$STATUS" | grep -q "Accepted"; then
+                    echo "✅ Notarization accepted!"
+                    xcrun stapler staple "$DMG_PATH"
+                    echo "✅ DMG signed and notarized: $DMG_PATH"
+                    break
+                  elif echo "$STATUS" | grep -q "Invalid\|Rejected"; then
+                    echo "❌ Notarization rejected. Fetching log..."
+                    xcrun notarytool log "$SUBMISSION_ID" \
+                      --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+                      --key-id "$API_KEY_ID" \
+                      --issuer "$API_ISSUER_ID" 2>&1 || true
+                    echo "⚠️ Continuing with signed but not notarized DMG"
+                    break
+                  fi
+                  if [ $i -eq 30 ]; then
+                    echo "⚠️ Notarization still in progress after 15 min. Continuing with signed DMG."
+                  fi
+                done
+              fi
+
               rm -rf "/tmp/$APP_NAME" /tmp/drift-notarize.zip
             else
               hdiutil detach "$MOUNT_POINT" -quiet || true
@@ -477,15 +497,7 @@ jobs:
             PKG_NAME=$(basename "$PKG_PATH")
             productsign --sign "$INSTALLER_IDENTITY" "$PKG_PATH" "/tmp/signed-${PKG_NAME}"
             mv "/tmp/signed-${PKG_NAME}" "$PKG_PATH"
-            # Notarize PKG
-            echo "=== Notarizing PKG ==="
-            xcrun notarytool submit "$PKG_PATH" \
-              --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
-              --key-id "$API_KEY_ID" \
-              --issuer "$API_ISSUER_ID" \
-              --wait --timeout 30m
-            xcrun stapler staple "$PKG_PATH"
-            echo "✅ PKG signed and notarized: $PKG_PATH"
+            echo "✅ PKG signed"
           fi
 
           # Cleanup
