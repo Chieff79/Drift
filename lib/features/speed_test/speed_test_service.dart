@@ -236,14 +236,20 @@ class SpeedTestService {
   }
 
   /// Measure upload speed through VPN
+  /// Uses smaller chunks and fewer streams on iOS to avoid
+  /// overwhelming the Network Extension (PacketTunnel) memory limit.
   Future<double> measureUploadSpeed({
     required SpeedServer server,
     Duration duration = const Duration(seconds: 10),
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
     _cancelled = false;
-    const int streamCount = 4;
-    const chunkSize = 2 * 1024 * 1024; // 2 MB
+    // iOS Network Extension has ~50 MB memory limit.
+    // Aggressive upload bursts can crash the tunnel provider.
+    final bool isAppleMobile = Platform.isIOS;
+    final int streamCount = isAppleMobile ? 2 : 4;
+    final int chunkSize = isAppleMobile ? 256 * 1024 : 1024 * 1024; // 256 KB on iOS, 1 MB otherwise
+
     final random = Random();
     final uploadData = Uint8List(chunkSize);
     for (int i = 0; i < chunkSize; i++) {
@@ -278,6 +284,10 @@ class SpeedTestService {
               final resp = await req.close();
               await resp.drain<void>();
               totalBytes += uploadData.length;
+              // Small delay on iOS to let the tunnel provider breathe
+              if (isAppleMobile) {
+                await Future.delayed(const Duration(milliseconds: 10));
+              }
             } catch (_) {
               break;
             }
