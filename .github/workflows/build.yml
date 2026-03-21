@@ -392,64 +392,82 @@ jobs:
           echo "=== Signing identity: $IDENTITY ==="
           echo "=== Installer identity: $INSTALLER_IDENTITY ==="
 
-          # Find the .app in dist/
-          APP_PATH=$(find dist -name "*.app" -type d | head -1)
-          echo "=== App path: $APP_PATH ==="
-
-          if [ -z "$APP_PATH" ]; then
-            echo "⚠️ No .app found in dist/, skipping"
-            exit 0
-          fi
-
-          # Deep sign the .app with hardened runtime
-          echo "=== Signing .app with Developer ID ==="
-          codesign --deep --force --verify --verbose \
-            --options runtime \
-            --sign "$IDENTITY" \
-            "$APP_PATH"
-
-          echo "=== Verifying signature ==="
-          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-
-          # Create a ZIP for notarization
-          echo "=== Creating ZIP for notarization ==="
-          APP_NAME=$(basename "$APP_PATH")
-          ditto -c -k --keepParent "$APP_PATH" "/tmp/drift-notarize.zip"
-
           # Setup API key for notarytool
           mkdir -p ~/private_keys
           printf "%s" "$API_PRIVATE_KEY" > ~/private_keys/AuthKey_${API_KEY_ID}.p8
 
-          # Submit for notarization
-          echo "=== Submitting for notarization ==="
-          xcrun notarytool submit "/tmp/drift-notarize.zip" \
-            --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
-            --key-id "$API_KEY_ID" \
-            --issuer "$API_ISSUER_ID" \
-            --wait --timeout 30m
+          # Show dist/ contents
+          echo "=== Contents of dist/ ==="
+          find dist -type f -o -type d | head -50
 
-          # Staple the notarization ticket to the app
-          echo "=== Stapling notarization ticket ==="
-          xcrun stapler staple "$APP_PATH"
-
-          # Re-create DMG with signed & notarized app
-          echo "=== Rebuilding DMG with notarized app ==="
+          # Find DMG and extract .app from it
           DMG_PATH=$(find dist -name "*.dmg" | head -1)
+          echo "=== DMG path: $DMG_PATH ==="
+
           if [ -n "$DMG_PATH" ]; then
-            DMG_NAME=$(basename "$DMG_PATH")
-            DMG_DIR=$(dirname "$DMG_PATH")
-            rm -f "$DMG_PATH"
-            hdiutil create -volname "Drift VPN" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
-            # Sign the DMG
-            codesign --force --sign "$IDENTITY" "$DMG_PATH"
-            # Notarize the DMG
-            xcrun notarytool submit "$DMG_PATH" \
-              --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
-              --key-id "$API_KEY_ID" \
-              --issuer "$API_ISSUER_ID" \
-              --wait --timeout 30m
-            xcrun stapler staple "$DMG_PATH"
-            echo "✅ DMG signed and notarized: $DMG_PATH"
+            echo "=== Mounting DMG to extract .app ==="
+            MOUNT_POINT="/tmp/drift-dmg-mount"
+            hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_POINT" -nobrowse -quiet
+
+            APP_IN_DMG=$(find "$MOUNT_POINT" -name "*.app" -maxdepth 1 -type d | head -1)
+            echo "=== App in DMG: $APP_IN_DMG ==="
+
+            if [ -n "$APP_IN_DMG" ]; then
+              APP_NAME=$(basename "$APP_IN_DMG")
+              # Copy .app out of DMG to work with it
+              cp -R "$APP_IN_DMG" "/tmp/$APP_NAME"
+              hdiutil detach "$MOUNT_POINT" -quiet
+
+              # Deep sign the .app with hardened runtime
+              echo "=== Signing .app with Developer ID ==="
+              codesign --deep --force --verify --verbose \
+                --options runtime \
+                --sign "$IDENTITY" \
+                "/tmp/$APP_NAME"
+
+              echo "=== Verifying signature ==="
+              codesign --verify --deep --strict --verbose=2 "/tmp/$APP_NAME"
+
+              # Create a ZIP for notarization
+              echo "=== Creating ZIP for notarization ==="
+              ditto -c -k --keepParent "/tmp/$APP_NAME" "/tmp/drift-notarize.zip"
+
+              # Submit for notarization
+              echo "=== Submitting .app for notarization ==="
+              xcrun notarytool submit "/tmp/drift-notarize.zip" \
+                --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+                --key-id "$API_KEY_ID" \
+                --issuer "$API_ISSUER_ID" \
+                --wait --timeout 30m
+
+              # Staple the notarization ticket
+              echo "=== Stapling notarization ticket ==="
+              xcrun stapler staple "/tmp/$APP_NAME"
+
+              # Re-create DMG with signed & notarized app
+              echo "=== Rebuilding DMG with signed app ==="
+              rm -f "$DMG_PATH"
+              hdiutil create -volname "Drift VPN" -srcfolder "/tmp/$APP_NAME" -ov -format UDZO "$DMG_PATH"
+
+              # Sign the DMG itself
+              codesign --force --sign "$IDENTITY" "$DMG_PATH"
+
+              # Notarize the DMG
+              echo "=== Notarizing DMG ==="
+              xcrun notarytool submit "$DMG_PATH" \
+                --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+                --key-id "$API_KEY_ID" \
+                --issuer "$API_ISSUER_ID" \
+                --wait --timeout 30m
+              xcrun stapler staple "$DMG_PATH"
+              echo "✅ DMG signed and notarized: $DMG_PATH"
+
+              # Cleanup
+              rm -rf "/tmp/$APP_NAME" /tmp/drift-notarize.zip
+            else
+              hdiutil detach "$MOUNT_POINT" -quiet || true
+              echo "⚠️ No .app found inside DMG"
+            fi
           fi
 
           # Sign PKG if exists
@@ -460,6 +478,7 @@ jobs:
             productsign --sign "$INSTALLER_IDENTITY" "$PKG_PATH" "/tmp/signed-${PKG_NAME}"
             mv "/tmp/signed-${PKG_NAME}" "$PKG_PATH"
             # Notarize PKG
+            echo "=== Notarizing PKG ==="
             xcrun notarytool submit "$PKG_PATH" \
               --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
               --key-id "$API_KEY_ID" \
@@ -470,7 +489,6 @@ jobs:
           fi
 
           # Cleanup
-          rm -f /tmp/drift-notarize.zip
           rm -rf ~/private_keys
 
       - name: Copy to out unix
