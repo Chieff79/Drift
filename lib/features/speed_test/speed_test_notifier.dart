@@ -16,6 +16,9 @@ class SpeedTestState {
   final String? serverCity;
   final String? serverCountry;
   final String? serverName;
+  final String? userCountryCode;
+  final String? serverCountryCode;
+  final bool isVpnActive;
   final String? error;
   final String? statusMessage;
 
@@ -33,6 +36,9 @@ class SpeedTestState {
     this.serverCity,
     this.serverCountry,
     this.serverName,
+    this.userCountryCode,
+    this.serverCountryCode,
+    this.isVpnActive = false,
     this.error,
     this.statusMessage,
     this.downloadSpeed,
@@ -50,6 +56,9 @@ class SpeedTestState {
     String? serverCity,
     String? serverCountry,
     String? serverName,
+    String? userCountryCode,
+    String? serverCountryCode,
+    bool? isVpnActive,
     String? error,
     String? statusMessage,
     double? downloadSpeed,
@@ -66,6 +75,9 @@ class SpeedTestState {
       serverCity: serverCity ?? this.serverCity,
       serverCountry: serverCountry ?? this.serverCountry,
       serverName: serverName ?? this.serverName,
+      userCountryCode: userCountryCode ?? this.userCountryCode,
+      serverCountryCode: serverCountryCode ?? this.serverCountryCode,
+      isVpnActive: isVpnActive ?? this.isVpnActive,
       error: error,
       statusMessage: statusMessage ?? this.statusMessage,
       downloadSpeed: downloadSpeed ?? this.downloadSpeed,
@@ -145,6 +157,7 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
         serverCity: server.city,
         serverCountry: server.countryCode,
         serverName: server.name,
+        serverCountryCode: server.countryCode,
         statusMessage: 'Сервер: ${server.city}',
       );
 
@@ -154,6 +167,7 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
         state = state.copyWith(
           userCity: userLoc['city'],
           userCountry: userLoc['countryCode'],
+          userCountryCode: userLoc['countryCode'],
         );
       }
 
