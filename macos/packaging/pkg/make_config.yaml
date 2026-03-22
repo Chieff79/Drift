@@ -1,2 +1,2 @@
 install-path: /Applications
-#sign-identity: "Apple Development: Drift VPN"
+# sign-identity is handled in CI via productsign command
