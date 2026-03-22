@@ -394,6 +394,10 @@ class ProfileParser {
 
   static String protocol(String content) {
     if (content.contains("[Interface]")) {
+      // AmneziaWG has Jc/Jmin/Jmax obfuscation parameters
+      if (content.contains("Jc") && content.contains("Jmin") && content.contains("Jmax")) {
+        return ProxyType.awg.label;
+      }
       return ProxyType.wireguard.label;
     }
     final lines = content.split('\n');
