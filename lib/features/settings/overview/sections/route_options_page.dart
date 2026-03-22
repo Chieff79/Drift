@@ -19,12 +19,13 @@ class RouteOptionsPage extends HookConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
     final perAppProxy = ref.watch(Preferences.perAppProxyMode).enabled;
     return Scaffold(
-      appBar: AppBar(title: Text(t.pages.settings.routing.title)),
+      appBar: AppBar(title: const Text('Маршрутизация')),
       body: ListView(
         children: [
           if (PlatformUtils.isAndroid)
             ListTile(
               title: Text(t.pages.settings.routing.perAppProxy.title),
+              subtitle: const Text('Выбрать приложения для VPN'),
               leading: const Icon(Icons.apps_rounded),
               trailing: Switch(
                 value: perAppProxy,
@@ -46,6 +47,7 @@ class RouteOptionsPage extends HookConsumerWidget {
             preferences: ref.watch(ConfigOptions.region.notifier),
             choices: Region.values,
             title: t.pages.settings.routing.region,
+            description: 'Регион для оптимальной маршрутизации',
             showFlag: true,
             icon: Icons.place_rounded,
             presentChoice: (value) => value.present(t),
@@ -70,6 +72,7 @@ class RouteOptionsPage extends HookConsumerWidget {
           ),
           ChoicePreferenceWidget(
             title: t.pages.settings.routing.balancerStrategy.title,
+            description: 'Способ выбора лучшего сервера',
             icon: Icons.balance_rounded,
             selected: ref.watch(ConfigOptions.balancerStrategy),
             preferences: ref.watch(ConfigOptions.balancerStrategy.notifier),
@@ -78,18 +81,21 @@ class RouteOptionsPage extends HookConsumerWidget {
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.routing.blockAds),
+            subtitle: const Text('Блокировать рекламу и трекеры'),
             secondary: const Icon(Icons.block_rounded),
             value: ref.watch(ConfigOptions.blockAds),
             onChanged: ref.read(ConfigOptions.blockAds.notifier).update,
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.routing.bypassLan),
+            subtitle: const Text('Не направлять локальный трафик через VPN'),
             secondary: const Icon(Icons.call_split_rounded),
             value: ref.watch(ConfigOptions.bypassLan),
             onChanged: ref.read(ConfigOptions.bypassLan.notifier).update,
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.routing.resolveDestination),
+            subtitle: const Text('Определять IP-адрес назначения'),
             secondary: const Icon(Icons.security_rounded),
             value: ref.watch(ConfigOptions.resolveDestination),
             onChanged: ref.read(ConfigOptions.resolveDestination.notifier).update,
@@ -99,6 +105,7 @@ class RouteOptionsPage extends HookConsumerWidget {
             preferences: ref.watch(ConfigOptions.ipv6Mode.notifier),
             choices: IPv6Mode.values,
             title: t.pages.settings.routing.ipv6Route,
+            description: 'Режим маршрутизации IPv6',
             icon: Icons.looks_6_rounded,
             presentChoice: (value) => value.present(t),
           ),

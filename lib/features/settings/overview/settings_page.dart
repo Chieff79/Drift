@@ -142,13 +142,15 @@ class SettingsPage extends HookConsumerWidget {
         children: [
           // TipCard(message: t.settings.experimentalMsg),
           SettingsSection(
-            title: t.pages.settings.general.title,
+            title: 'Основные',
             icon: Icons.layers_rounded,
+            subtitle: 'Язык, тема, уведомления',
             namedLocation: context.namedLocation('general'),
           ),
           SettingsSection(
-            title: t.pages.settings.routing.title,
+            title: 'Маршрутизация',
             icon: Icons.route_rounded,
+            subtitle: 'Блокировка рекламы, обход локальной сети',
             namedLocation: context.namedLocation('routeOptions'),
           ),
           if (PlatformUtils.isAndroid)
@@ -162,23 +164,27 @@ class SettingsPage extends HookConsumerWidget {
               ),
             ),
           SettingsSection(
-            title: t.pages.settings.dns.title,
+            title: 'DNS',
             icon: Icons.dns_rounded,
+            subtitle: 'Серверы имён, защита от утечек',
             namedLocation: context.namedLocation('dnsOptions'),
           ),
           SettingsSection(
-            title: t.pages.settings.inbound.title,
+            title: 'Подключение',
             icon: Icons.input_rounded,
+            subtitle: 'Режим работы, порты',
             namedLocation: context.namedLocation('inboundOptions'),
           ),
           SettingsSection(
-            title: t.pages.settings.tlsTricks.title,
+            title: 'Обход блокировок',
             icon: Icons.content_cut_rounded,
+            subtitle: 'Фрагментация, маскировка трафика',
             namedLocation: context.namedLocation('tlsTricks'),
           ),
           SettingsSection(
-            title: t.pages.settings.warp.title,
+            title: 'Cloudflare WARP',
             icon: Icons.cloud_rounded,
+            subtitle: 'Дополнительный туннель шифрования',
             namedLocation: context.namedLocation('warpOptions'),
           ),
           if (PlatformUtils.isIOS)
@@ -191,6 +197,20 @@ class SettingsPage extends HookConsumerWidget {
                 },
               ),
             ),
+          ListTile(
+            leading: const Icon(Icons.bar_chart_rounded),
+            title: const Text('Статистика'),
+            subtitle: const Text('Использование трафика и скорость'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.goNamed('stats'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.bug_report_rounded),
+            title: const Text('Сообщить о проблеме'),
+            subtitle: const Text('Отправить отчёт разработчику'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.goNamed('reportProblem'),
+          ),
           if (Breakpoint(context).isMobile()) ...[
             SettingsSection(
               title: t.pages.logs.title,
@@ -210,17 +230,25 @@ class SettingsPage extends HookConsumerWidget {
 }
 
 class SettingsSection extends HookConsumerWidget {
-  const SettingsSection({super.key, required this.title, required this.icon, required this.namedLocation});
+  const SettingsSection({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.namedLocation,
+    this.subtitle,
+  });
 
   final String title;
   final IconData icon;
   final String namedLocation;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
+      subtitle: subtitle != null ? Text(subtitle!) : null,
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: () => context.go(namedLocation),
     );

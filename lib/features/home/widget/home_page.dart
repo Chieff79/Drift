@@ -9,6 +9,7 @@ import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/home/notifier/real_ip_notifier.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
+import 'package:hiddify/features/home/widget/world_map_widget.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
@@ -25,6 +26,13 @@ class HomePage extends HookConsumerWidget {
     final activeProfile = ref.watch(activeProfileProvider);
     final connectionStatus = ref.watch(connectionNotifierProvider);
     final isConnected = connectionStatus.valueOrNull == const Connected();
+    final isConnecting = connectionStatus.valueOrNull?.isSwitching ?? false;
+
+    // Location data for the map
+    final realIp = ref.watch(realIpNotifierProvider);
+    final activeProxy = ref.watch(activeProxyNotifierProvider);
+    final userCountryCode = realIp.valueOrNull?.countryCode;
+    final vpnCountryCode = activeProxy.valueOrNull?.ipinfo.countryCode;
 
     return Scaffold(
       appBar: AppBar(
@@ -64,70 +72,68 @@ class HomePage extends HookConsumerWidget {
           const Gap(8),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: const AssetImage('assets/images/world_map.png'),
-            fit: BoxFit.cover,
-            opacity: 0.09,
-            colorFilter: theme.brightness == Brightness.dark
-                ? ColorFilter.mode(Colors.white.withValues(alpha: .15), BlendMode.srcIn)
-                : ColorFilter.mode(Colors.grey.withValues(alpha: 1), BlendMode.srcATop),
+      body: Stack(
+        children: [
+          // ── Full-screen interactive map background ─────────────
+          Positioned.fill(
+            child: WorldMapWidget(
+              isConnected: isConnected,
+              isConnecting: isConnecting,
+              userCountryCode: userCountryCode,
+              vpnCountryCode: vpnCountryCode,
+            ),
           ),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: CustomScrollView(
-                  slivers: [
-                    MultiSliver(
-                      children: [
-                        // Profile tile at top
-                        switch (activeProfile) {
-                          AsyncData(value: final profile?) => ProfileTile(
-                            profile: profile,
-                            isMain: true,
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            color: theme.colorScheme.surfaceContainer,
-                          ),
-                          _ => const Text(''),
-                        },
 
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Gap(8),
-
-                              // ── IP Status Card ──────────────────────────────
-                              _IpStatusCard(isConnected: isConnected),
-
-                              const Gap(24),
-
-                              // ── Connection button ───────────────────────────
-                              const ConnectionButton(),
-
-                              const Gap(24),
-
-                              // ── City A → City B row ────────────────────────
-                              if (isConnected) const _CityRouteRow(),
-
-                              const Gap(16),
-                            ],
-                          ),
+          // ── UI content on top of the map ──────────────────────
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: CustomScrollView(
+                slivers: [
+                  MultiSliver(
+                    children: [
+                      // Profile tile at top
+                      switch (activeProfile) {
+                        AsyncData(value: final profile?) => ProfileTile(
+                          profile: profile,
+                          isMain: true,
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          color: theme.colorScheme.surfaceContainer,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                        _ => const Text(''),
+                      },
+
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Gap(8),
+
+                            // ── IP Status Card ──────────────────────────────
+                            _IpStatusCard(isConnected: isConnected),
+
+                            const Gap(24),
+
+                            // ── Connection button ───────────────────────────
+                            const ConnectionButton(),
+
+                            const Gap(24),
+
+                            // ── City A → City B row ────────────────────────
+                            if (isConnected) const _CityRouteRow(),
+
+                            const Gap(16),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

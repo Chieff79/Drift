@@ -23,11 +23,12 @@ class TlsTricksPage extends HookConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
     final canChangeOption = ref.watch(ConfigOptions.enableTlsFragment);
     return Scaffold(
-      appBar: AppBar(title: Text(t.pages.settings.tlsTricks.title)),
+      appBar: AppBar(title: const Text('Обход блокировок')),
       body: ListView(
         children: [
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.tlsTricks.enable),
+            subtitle: const Text('Разбивать TLS-пакеты для обхода DPI'),
             value: ref.watch(ConfigOptions.enableTlsFragment),
             secondary: const Icon(Icons.content_cut_rounded),
             onChanged: ref.read(ConfigOptions.enableTlsFragment.notifier).update,
@@ -37,6 +38,7 @@ class TlsTricksPage extends HookConsumerWidget {
             preferences: ref.watch(ConfigOptions.fragmentPackets.notifier),
             choices: ["tlshello", "1-1", "1-2", "1-3", "1-4", "1-5"],
             title: t.pages.settings.tlsTricks.packets,
+            description: 'Тип пакетов для фрагментации',
             icon: Icons.layers_rounded,
             presentChoice: (value) => _presentFragmentPackets(t, value),
             enabled: canChangeOption,
@@ -45,6 +47,7 @@ class TlsTricksPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.tlsFragmentSize),
             preferences: ref.watch(ConfigOptions.tlsFragmentSize.notifier),
             title: t.pages.settings.tlsTricks.size,
+            description: 'Размер фрагментов в байтах',
             icon: Icons.straighten_rounded,
             inputToValue: OptionalRange.tryParse,
             presentValue: (value) => value.present(t),
@@ -55,6 +58,7 @@ class TlsTricksPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.tlsFragmentSleep),
             preferences: ref.watch(ConfigOptions.tlsFragmentSleep.notifier),
             title: t.pages.settings.tlsTricks.sleep,
+            description: 'Задержка между фрагментами',
             icon: Icons.snooze_rounded,
             inputToValue: OptionalRange.tryParse,
             presentValue: (value) => value.present(t),
@@ -63,12 +67,14 @@ class TlsTricksPage extends HookConsumerWidget {
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.tlsTricks.mixedSniCase.enable),
+            subtitle: const Text('Смешивать регистр SNI для маскировки'),
             value: ref.watch(ConfigOptions.enableTlsMixedSniCase),
             secondary: const Icon(Icons.text_fields_rounded),
             onChanged: canChangeOption ? ref.read(ConfigOptions.enableTlsMixedSniCase.notifier).update : null,
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.tlsTricks.padding.enable),
+            subtitle: const Text('Добавлять дополнительные данные к пакетам'),
             value: ref.watch(ConfigOptions.enableTlsPadding),
             secondary: const Icon(Icons.expand_rounded),
             onChanged: canChangeOption ? ref.read(ConfigOptions.enableTlsPadding.notifier).update : null,
@@ -77,6 +83,7 @@ class TlsTricksPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.tlsPaddingSize),
             preferences: ref.watch(ConfigOptions.tlsPaddingSize.notifier),
             title: t.pages.settings.tlsTricks.padding.size,
+            description: 'Размер дополнительных данных',
             icon: Icons.straighten_rounded,
             inputToValue: OptionalRange.tryParse,
             presentValue: (value) => value.format(),

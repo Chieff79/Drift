@@ -28,6 +28,7 @@ class GeneralPage extends HookConsumerWidget {
           const EnableAnalyticsPrefTile(),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.general.autoIpCheck),
+            subtitle: const Text('Автоматически проверять IP при подключении'),
             value: ref.watch(Preferences.autoCheckIp),
             secondary: const Icon(Icons.flag_rounded),
             onChanged: ref.read(Preferences.autoCheckIp.notifier).update,
@@ -35,12 +36,14 @@ class GeneralPage extends HookConsumerWidget {
           if (PlatformUtils.isAndroid) ...[
             SwitchListTile.adaptive(
               title: Text(t.pages.settings.general.dynamicNotification),
+              subtitle: const Text('Показывать скорость в уведомлении'),
               secondary: const Icon(Icons.speed_rounded),
               value: ref.watch(Preferences.dynamicNotification),
               onChanged: ref.read(Preferences.dynamicNotification.notifier).update,
             ),
             SwitchListTile.adaptive(
               title: Text(t.pages.settings.general.hapticFeedback),
+              subtitle: const Text('Вибрация при нажатиях'),
               secondary: const Icon(Icons.vibration_rounded),
               value: ref.watch(hapticServiceProvider),
               onChanged: ref.read(hapticServiceProvider.notifier).updatePreference,
@@ -88,6 +91,7 @@ class GeneralPage extends HookConsumerWidget {
             preferences: ref.watch(ConfigOptions.logLevel.notifier),
             choices: LogLevel.choices,
             title: t.pages.settings.general.logLevel,
+            description: 'Уровень детализации журнала',
             icon: Icons.description_rounded,
             presentChoice: (value) => value.name.toUpperCase(),
           ),
@@ -95,6 +99,7 @@ class GeneralPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.connectionTestUrl),
             preferences: ref.watch(ConfigOptions.connectionTestUrl.notifier),
             title: t.pages.settings.general.connectionTestUrl,
+            description: 'URL для проверки соединения',
             icon: Icons.link_rounded,
           ),
           ListTile(
@@ -121,6 +126,7 @@ class GeneralPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.clashApiPort),
             preferences: ref.watch(ConfigOptions.clashApiPort.notifier),
             title: t.pages.settings.general.clashApiPort,
+            description: 'Порт для внешнего управления',
             icon: Icons.api_rounded,
             validateInput: isPort,
             digitsOnly: true,

@@ -20,7 +20,9 @@ import 'package:hiddify/features/proxy/overview/proxies_overview_page.dart';
 import 'package:hiddify/features/settings/overview/sections/dns_options_page.dart';
 import 'package:hiddify/features/settings/overview/sections/general_page.dart';
 import 'package:hiddify/features/settings/overview/sections/inbound_options_page.dart';
+import 'package:hiddify/features/settings/overview/sections/report_problem_page.dart';
 import 'package:hiddify/features/settings/overview/sections/route_options_page.dart';
+import 'package:hiddify/features/settings/overview/sections/stats_page.dart';
 import 'package:hiddify/features/settings/overview/sections/tls_tricks_page.dart';
 import 'package:hiddify/features/settings/overview/sections/warp_options_page.dart';
 import 'package:hiddify/features/settings/overview/settings_page.dart';
@@ -226,6 +228,18 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
                       path: '/warp-options',
                       pageBuilder: (_, state) =>
                           customTransition(TransitionType.slide, state.pageKey, const WarpOptionsPage()),
+                    ),
+                    GoRoute(
+                      name: 'stats',
+                      path: '/stats',
+                      pageBuilder: (_, state) =>
+                          customTransition(TransitionType.slide, state.pageKey, const StatsPage()),
+                    ),
+                    GoRoute(
+                      name: 'reportProblem',
+                      path: '/report-problem',
+                      pageBuilder: (_, state) =>
+                          customTransition(TransitionType.slide, state.pageKey, const ReportProblemPage()),
                     ),
                     if (isMobileBreakpoint) ...[
                       GoRoute(

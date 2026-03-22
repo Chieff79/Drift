@@ -19,7 +19,19 @@ class LocalePrefTile extends ConsumerWidget {
     final locale = ref.watch(localePreferencesProvider);
     return ListTile(
       title: Text(t.pages.settings.general.locale),
-      subtitle: Text(locale.localeName),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(locale.localeName),
+          const SizedBox(height: 2),
+          Text(
+            'Выберите язык интерфейса',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
       leading: const Icon(Icons.translate_rounded),
       onTap: () async {
         final selectedLocale = await ref
@@ -52,7 +64,19 @@ class EnableAnalyticsPrefTile extends ConsumerWidget {
 
     return SwitchListTile.adaptive(
       title: Text(t.pages.settings.general.enableAnalytics),
-      subtitle: Text(t.pages.settings.general.enableAnalyticsMsg, style: Theme.of(context).textTheme.bodySmall),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(t.pages.settings.general.enableAnalyticsMsg, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 2),
+          Text(
+            'Помогите улучшить приложение',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
       secondary: const Icon(Icons.analytics_rounded),
       value: enabled,
       onChanged: (value) async {
@@ -80,7 +104,19 @@ class ThemeModePrefTile extends ConsumerWidget {
 
     return ListTile(
       title: Text(t.pages.settings.general.themeMode),
-      subtitle: Text(themeMode.present(t)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(themeMode.present(t)),
+          const SizedBox(height: 2),
+          Text(
+            'Светлая, тёмная или системная тема',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
       leading: Icon(switch (ref.watch(themePreferencesProvider)) {
         AppThemeMode.system => Icons.auto_awesome_rounded,
         AppThemeMode.light => Icons.light_mode_rounded,

@@ -11,7 +11,7 @@ class DnsOptionsPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(translationsProvider).requireValue;
     return Scaffold(
-      appBar: AppBar(title: Text(t.pages.settings.dns.title)),
+      appBar: AppBar(title: const Text('DNS')),
       body: ListView(
         children: [
           ValuePreferenceWidget(
@@ -19,17 +19,20 @@ class DnsOptionsPage extends HookConsumerWidget {
             icon: Icons.vpn_lock_rounded,
             preferences: ref.watch(ConfigOptions.remoteDnsAddress.notifier),
             title: t.pages.settings.dns.remoteDns,
+            description: 'DNS-сервер для зашифрованных запросов',
           ),
           ChoicePreferenceWidget(
             selected: ref.watch(ConfigOptions.remoteDnsDomainStrategy),
             preferences: ref.watch(ConfigOptions.remoteDnsDomainStrategy.notifier),
             choices: DomainStrategy.values,
             title: t.pages.settings.dns.remoteDnsDomainStrategy,
+            description: 'Стратегия разрешения доменов',
             icon: Icons.sync_alt_rounded,
             presentChoice: (value) => value.present(t),
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.dns.enableFakeDns),
+            subtitle: const Text('Ускоряет подключение через подмену DNS'),
             secondary: const Icon(Icons.private_connectivity_rounded),
             value: ref.watch(ConfigOptions.enableFakeDns),
             onChanged: ref.read(ConfigOptions.enableFakeDns.notifier).update,
@@ -39,12 +42,14 @@ class DnsOptionsPage extends HookConsumerWidget {
             icon: Icons.public_rounded,
             value: ref.watch(ConfigOptions.directDnsAddress),
             preferences: ref.watch(ConfigOptions.directDnsAddress.notifier),
+            description: 'DNS для прямых соединений',
           ),
           ChoicePreferenceWidget(
             selected: ref.watch(ConfigOptions.directDnsDomainStrategy),
             preferences: ref.watch(ConfigOptions.directDnsDomainStrategy.notifier),
             choices: DomainStrategy.values,
             title: t.pages.settings.dns.directDnsDomainStrategy,
+            description: 'Стратегия для прямых запросов',
             icon: Icons.sync_alt_rounded,
             presentChoice: (value) => value.present(t),
           ),

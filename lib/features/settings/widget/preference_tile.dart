@@ -12,6 +12,7 @@ class ValuePreferenceWidget<T> extends HookConsumerWidget {
     required this.preferences,
     this.enabled = true,
     required this.title,
+    this.description,
     this.presentValue,
     this.formatInputValue,
     this.validateInput,
@@ -24,6 +25,7 @@ class ValuePreferenceWidget<T> extends HookConsumerWidget {
   final PreferencesNotifier<T, dynamic> preferences;
   final bool enabled;
   final String title;
+  final String? description;
   final String Function(T value)? presentValue;
   final String Function(T value)? formatInputValue;
   final bool Function(String value)? validateInput;
@@ -33,9 +35,25 @@ class ValuePreferenceWidget<T> extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final valueText = presentValue?.call(value) ?? value.toString();
+    final subtitleWidget = description != null
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(valueText),
+              const SizedBox(height: 2),
+              Text(
+                description!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          )
+        : Text(valueText);
     return ListTile(
       title: Text(title),
-      subtitle: Text(presentValue?.call(value) ?? value.toString()),
+      subtitle: subtitleWidget,
       leading: icon != null ? Icon(icon) : null,
       // material: (context, platform) => MaterialListTileData(
       enabled: enabled,
@@ -71,6 +89,7 @@ class ChoicePreferenceWidget<T> extends HookConsumerWidget {
     this.enabled = true,
     required this.choices,
     required this.title,
+    this.description,
     this.showFlag = false,
     this.icon,
     required this.presentChoice,
@@ -83,6 +102,7 @@ class ChoicePreferenceWidget<T> extends HookConsumerWidget {
   final bool enabled;
   final List<T> choices;
   final String title;
+  final String? description;
   final bool showFlag;
   final IconData? icon;
   final String Function(T value) presentChoice;
@@ -90,9 +110,25 @@ class ChoicePreferenceWidget<T> extends HookConsumerWidget {
   final ValueChanged<T>? onChanged;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final choiceText = presentChoice(selected);
+    final subtitleWidget = description != null
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(choiceText),
+              const SizedBox(height: 2),
+              Text(
+                description!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          )
+        : Text(choiceText);
     return ListTile(
       title: Text(title),
-      subtitle: Text(presentChoice(selected)),
+      subtitle: subtitleWidget,
       leading: icon != null ? Icon(icon) : null,
       enabled: enabled,
       onTap: () async {

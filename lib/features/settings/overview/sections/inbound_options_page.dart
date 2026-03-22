@@ -15,7 +15,7 @@ class InboundOptionsPage extends HookConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.pages.settings.inbound.title)),
+      appBar: AppBar(title: const Text('Подключение')),
       body: ListView(
         children: [
           ChoicePreferenceWidget(
@@ -23,11 +23,13 @@ class InboundOptionsPage extends HookConsumerWidget {
             preferences: ref.watch(ConfigOptions.serviceMode.notifier),
             choices: ServiceMode.choices,
             title: t.pages.settings.inbound.serviceMode,
+            description: 'Режим перехвата трафика',
             icon: Icons.tune_rounded,
             presentChoice: (value) => value.present(t),
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.inbound.strictRoute),
+            subtitle: const Text('Строгая маршрутизация — предотвращает утечки'),
             secondary: const Icon(Icons.merge_rounded),
             value: ref.watch(ConfigOptions.strictRoute),
             onChanged: ref.read(ConfigOptions.strictRoute.notifier).update,
@@ -37,6 +39,7 @@ class InboundOptionsPage extends HookConsumerWidget {
             preferences: ref.watch(ConfigOptions.tunImplementation.notifier),
             choices: TunImplementation.values,
             title: t.pages.settings.inbound.tunImplementation,
+            description: 'Технология виртуального адаптера',
             icon: Icons.trip_origin_rounded,
             presentChoice: (value) => value.name,
           ),
@@ -44,6 +47,7 @@ class InboundOptionsPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.mixedPort),
             preferences: ref.watch(ConfigOptions.mixedPort.notifier),
             title: t.pages.settings.inbound.mixedPort,
+            description: 'Порт для HTTP/SOCKS5 прокси',
             icon: Icons.device_hub_rounded,
             inputToValue: int.tryParse,
             digitsOnly: true,
@@ -54,6 +58,7 @@ class InboundOptionsPage extends HookConsumerWidget {
               value: ref.watch(ConfigOptions.tproxyPort),
               preferences: ref.watch(ConfigOptions.tproxyPort.notifier),
               title: t.pages.settings.inbound.tproxyPort,
+              description: 'Порт прозрачного прокси',
               icon: Icons.device_hub_rounded,
               inputToValue: int.tryParse,
               digitsOnly: true,
@@ -64,6 +69,7 @@ class InboundOptionsPage extends HookConsumerWidget {
               value: ref.watch(ConfigOptions.redirectPort),
               preferences: ref.watch(ConfigOptions.redirectPort.notifier),
               title: t.pages.settings.inbound.redirectPort,
+              description: 'Порт перенаправления трафика',
               icon: Icons.device_hub_rounded,
               inputToValue: int.tryParse,
               digitsOnly: true,
@@ -73,6 +79,7 @@ class InboundOptionsPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.directPort),
             preferences: ref.watch(ConfigOptions.directPort.notifier),
             title: t.pages.settings.inbound.directPort,
+            description: 'Порт для прямых соединений',
             icon: Icons.device_hub_rounded,
             inputToValue: int.tryParse,
             digitsOnly: true,
@@ -80,6 +87,7 @@ class InboundOptionsPage extends HookConsumerWidget {
           ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.inbound.allowConnectionFromLan),
+            subtitle: const Text('Разрешить подключения из локальной сети'),
             secondary: const Icon(Icons.share_rounded),
             value: ref.watch(ConfigOptions.allowConnectionFromLan),
             onChanged: (bool value) async {
