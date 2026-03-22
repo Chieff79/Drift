@@ -31,8 +31,12 @@ class HomePage extends HookConsumerWidget {
     // Location data for the map
     final realIp = ref.watch(realIpNotifierProvider);
     final activeProxy = ref.watch(activeProxyNotifierProvider);
+    // Use ipInfoNotifier for REAL exit IP country (not intermediate proxy node)
+    final vpnIpInfo = ref.watch(ipInfoNotifierProvider);
     final userCountryCode = realIp.valueOrNull?.countryCode;
-    final vpnCountryCode = activeProxy.valueOrNull?.ipinfo.countryCode;
+    // Prefer real IP check country, fall back to proxy node country
+    final vpnCountryCode = vpnIpInfo.valueOrNull?.countryCode
+        ?? activeProxy.valueOrNull?.ipinfo.countryCode;
 
     return Scaffold(
       appBar: AppBar(
@@ -278,10 +282,16 @@ class _ConnectedIpCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final activeProxy = ref.watch(activeProxyNotifierProvider);
+    // Use real IP info (from ipapi.co etc.) for accurate exit country
+    final vpnIpInfo = ref.watch(ipInfoNotifierProvider);
 
-    final vpnIp = activeProxy.valueOrNull?.ipinfo.ip ?? '';
-    final countryCode = activeProxy.valueOrNull?.ipinfo.countryCode ?? '';
-    final org = activeProxy.valueOrNull?.ipinfo.org ?? '';
+    // Prefer real IP check data, fall back to proxy node data
+    final vpnIp = vpnIpInfo.valueOrNull?.ip
+        ?? activeProxy.valueOrNull?.ipinfo.ip ?? '';
+    final countryCode = vpnIpInfo.valueOrNull?.countryCode
+        ?? activeProxy.valueOrNull?.ipinfo.countryCode ?? '';
+    final org = vpnIpInfo.valueOrNull?.org
+        ?? activeProxy.valueOrNull?.ipinfo.org ?? '';
     final tagDisplay = activeProxy.valueOrNull?.tagDisplay ?? '';
 
     return Container(
@@ -396,9 +406,12 @@ class _CityRouteRow extends ConsumerWidget {
     final theme = Theme.of(context);
     final realIp = ref.watch(realIpNotifierProvider);
     final activeProxy = ref.watch(activeProxyNotifierProvider);
+    final vpnIpInfo = ref.watch(ipInfoNotifierProvider);
 
     final fromCountry = realIp.valueOrNull?.countryCode ?? '';
-    final toCountry = activeProxy.valueOrNull?.ipinfo.countryCode ?? '';
+    // Prefer real exit IP country over proxy node country
+    final toCountry = vpnIpInfo.valueOrNull?.countryCode
+        ?? activeProxy.valueOrNull?.ipinfo.countryCode ?? '';
 
     if (fromCountry.isEmpty && toCountry.isEmpty) return const SizedBox.shrink();
 
