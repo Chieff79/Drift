@@ -22,7 +22,7 @@ open class ExtensionProvider: NEPacketTunnelProvider {
             writeMessage("(packet-tunnel) starting")
             
             // Extract options with better error handling
-            let disableMemoryLimit = false && (options?["DisableMemoryLimit"] as? NSString as? String ?? "NO") == "YES" 
+            let disableMemoryLimit = (options?["DisableMemoryLimit"] as? NSString as? String ?? "NO") == "YES" || true
             let grpcServiceModePort = (options?["GrpcServiceModePort"] as? NSNumber)?.intValue ?? 17079
             
             let config = options?["Config"] as? NSString as? String ?? ""
@@ -201,8 +201,7 @@ open class ExtensionProvider: NEPacketTunnelProvider {
     
     override open func sleep() async {
         logger.debug("Entering sleep mode")
-//        MobilePause()
-        // Add any sleep mode handling if needed
+        MobilePause()
     }
     
     override open func wake() {
