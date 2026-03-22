@@ -422,35 +422,66 @@ jobs:
               echo "=== Using entitlements: $ENTITLEMENTS ==="
               cat "$ENTITLEMENTS"
 
-              # Sign each framework individually with hardened runtime + entitlements
-              echo "=== Signing nested frameworks ==="
-              find "/tmp/$APP_NAME/Contents/Frameworks" -name "*.framework" -o -name "*.dylib" | while read fw; do
-                echo "Signing: $fw"
-                codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$fw" 2>/dev/null || true
+              # === DIAGNOSTIC: Find all Mach-O binaries ===
+              echo "=== All Mach-O binaries inside .app ==="
+              find "/tmp/$APP_NAME" -type f -print0 | xargs -0 file | grep 'Mach-O' || echo "No Mach-O found"
+
+              # Sign ALL Mach-O binaries individually (bottom-up)
+              echo "=== Signing all Mach-O binaries ==="
+              find "/tmp/$APP_NAME" -type f -print0 | xargs -0 file | grep 'Mach-O' | awk -F: '{print $1}' | while read -r binary; do
+                echo "Signing binary: $binary"
+                codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$binary" || echo "WARN: failed to sign $binary"
+              done
+
+              # Sign each framework bundle
+              echo "=== Signing framework bundles ==="
+              find "/tmp/$APP_NAME/Contents/Frameworks" -name "*.framework" -type d | while read -r fw; do
+                echo "Signing framework: $fw"
+                codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$fw" || echo "WARN: failed to sign $fw"
               done
 
               # Sign helper apps
-              find "/tmp/$APP_NAME/Contents" -name "*.app" -not -path "/tmp/$APP_NAME" | while read helper; do
+              find "/tmp/$APP_NAME/Contents" -name "*.app" -not -path "/tmp/$APP_NAME" -type d | while read -r helper; do
                 echo "Signing helper: $helper"
-                codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$helper" 2>/dev/null || true
+                codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$helper" || echo "WARN: failed to sign $helper"
               done
 
               # Sign the main app with entitlements
               echo "=== Signing main .app with Developer ID ==="
-              codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "/tmp/$APP_NAME"
+              codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "/tmp/$APP_NAME"
 
+              # === DIAGNOSTIC: Verify signature ===
               echo "=== Verifying signature ==="
-              codesign --verify --deep --strict --verbose=2 "/tmp/$APP_NAME"
+              codesign --verify --verbose=4 --strict "/tmp/$APP_NAME"
+              echo "=== spctl assessment ==="
+              spctl -a -vvv --type exec "/tmp/$APP_NAME" || echo "spctl check done (may fail without notarization)"
+              echo "=== Checking entitlements on signed app ==="
+              codesign -d --entitlements :- "/tmp/$APP_NAME"
+
+              # === DIAGNOSTIC: Verify ALL nested binaries ===
+              echo "=== Verifying all nested Mach-O signatures ==="
+              SIGN_ERRORS=0
+              find "/tmp/$APP_NAME" -type f -print0 | xargs -0 file | grep 'Mach-O' | awk -F: '{print $1}' | while read -r binary; do
+                if ! codesign --verify --verbose=2 --strict "$binary" 2>/dev/null; then
+                  echo "FAILED: $binary"
+                  SIGN_ERRORS=$((SIGN_ERRORS + 1))
+                fi
+              done
+              echo "=== Signature verification errors: $SIGN_ERRORS ==="
 
               # Re-create DMG with signed app
               echo "=== Rebuilding DMG with signed app ==="
               rm -f "$DMG_PATH"
               hdiutil create -volname "Drift VPN" -srcfolder "/tmp/$APP_NAME" -ov -format UDZO "$DMG_PATH"
-              codesign --force --sign "$IDENTITY" "$DMG_PATH"
+              codesign --force --timestamp --sign "$IDENTITY" "$DMG_PATH"
 
-              # Submit DMG for notarization (don't wait — just submit)
-              echo "=== Submitting DMG for notarization (async) ==="
-              NOTARIZE_OUTPUT=$(xcrun notarytool submit "$DMG_PATH" \
+              # === NOTARIZATION via ZIP (more reliable than DMG) ===
+              echo "=== Creating ZIP for notarization ==="
+              ditto -c -k --keepParent "/tmp/$APP_NAME" /tmp/drift-notarize.zip
+              echo "=== ZIP size: $(du -h /tmp/drift-notarize.zip | cut -f1) ==="
+
+              echo "=== Submitting ZIP for notarization ==="
+              NOTARIZE_OUTPUT=$(xcrun notarytool submit /tmp/drift-notarize.zip \
                 --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
                 --key-id "$API_KEY_ID" \
                 --issuer "$API_ISSUER_ID" 2>&1) || true
@@ -458,10 +489,10 @@ jobs:
               SUBMISSION_ID=$(echo "$NOTARIZE_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
               echo "=== Submission ID: $SUBMISSION_ID ==="
 
-              # Wait up to 30 minutes for notarization
+              # Wait up to 20 minutes for notarization
               if [ -n "$SUBMISSION_ID" ]; then
-                echo "=== Waiting for notarization (max 30 min) ==="
-                for i in $(seq 1 60); do
+                echo "=== Waiting for notarization (max 20 min) ==="
+                for i in $(seq 1 40); do
                   sleep 30
                   STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
                     --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
@@ -471,7 +502,7 @@ jobs:
                   if echo "$STATUS" | grep -q "Accepted"; then
                     echo "✅ Notarization accepted!"
                     xcrun stapler staple "$DMG_PATH"
-                    echo "✅ DMG signed and notarized: $DMG_PATH"
+                    echo "✅ DMG stapled with notarization ticket"
                     break
                   elif echo "$STATUS" | grep -q "Invalid\|Rejected"; then
                     echo "❌ Notarization rejected. Fetching log..."
@@ -482,8 +513,14 @@ jobs:
                     echo "⚠️ Continuing with signed but not notarized DMG"
                     break
                   fi
-                  if [ $i -eq 60 ]; then
-                    echo "⚠️ Notarization still in progress after 30 min. Continuing with signed DMG."
+                  if [ $i -eq 40 ]; then
+                    echo "⚠️ Notarization still in progress after 20 min."
+                    echo "=== Attempting to fetch log anyway ==="
+                    xcrun notarytool log "$SUBMISSION_ID" \
+                      --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+                      --key-id "$API_KEY_ID" \
+                      --issuer "$API_ISSUER_ID" 2>&1 || true
+                    echo "⚠️ Continuing with signed DMG."
                   fi
                 done
               fi
