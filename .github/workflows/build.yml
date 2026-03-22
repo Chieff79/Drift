@@ -414,70 +414,73 @@ jobs:
 
             if [ -n "$APP_IN_DMG" ]; then
               APP_NAME=$(basename "$APP_IN_DMG")
-              cp -R "$APP_IN_DMG" "/tmp/$APP_NAME"
+              APP="/tmp/$APP_NAME"
+              cp -R "$APP_IN_DMG" "$APP"
               hdiutil detach "$MOUNT_POINT" -quiet
 
-              # Entitlements file for hardened runtime
+              # Entitlements — ONLY for the main app, NOT for frameworks/libraries
               ENTITLEMENTS="${GITHUB_WORKSPACE}/macos/Runner/DevID.entitlements"
-              echo "=== Using entitlements: $ENTITLEMENTS ==="
+              echo "=== Entitlements (main app only): ==="
               cat "$ENTITLEMENTS"
 
-              # === DIAGNOSTIC: Find all Mach-O binaries ===
-              echo "=== All Mach-O binaries inside .app ==="
-              find "/tmp/$APP_NAME" -type f -print0 | xargs -0 file | grep 'Mach-O' || echo "No Mach-O found"
-
-              # Sign ALL Mach-O binaries individually (bottom-up)
-              echo "=== Signing all Mach-O binaries ==="
-              find "/tmp/$APP_NAME" -type f -print0 | xargs -0 file | grep 'Mach-O' | awk -F: '{print $1}' | while read -r binary; do
-                echo "Signing binary: $binary"
-                codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$binary" || echo "WARN: failed to sign $binary"
+              # === STEP 1: Sign standalone dylibs (outside .framework/.app bundles) ===
+              echo "=== Step 1: Signing standalone dylibs ==="
+              find "$APP/Contents/Frameworks" -maxdepth 1 -name "*.dylib" -type f | while read -r dylib; do
+                echo "Signing dylib: $dylib"
+                codesign --force --timestamp --sign "$IDENTITY" "$dylib"
               done
 
-              # Sign each framework bundle
-              echo "=== Signing framework bundles ==="
-              find "/tmp/$APP_NAME/Contents/Frameworks" -name "*.framework" -type d | while read -r fw; do
+              # === STEP 2: Sign .framework bundles (NO entitlements, NO --options runtime) ===
+              echo "=== Step 2: Signing framework bundles ==="
+              find "$APP/Contents/Frameworks" -name "*.framework" -type d | while read -r fw; do
                 echo "Signing framework: $fw"
-                codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$fw" || echo "WARN: failed to sign $fw"
+                codesign --force --timestamp --sign "$IDENTITY" "$fw"
               done
 
-              # Sign helper apps
-              find "/tmp/$APP_NAME/Contents" -name "*.app" -not -path "/tmp/$APP_NAME" -type d | while read -r helper; do
+              # === STEP 3: Sign nested helper .app bundles (with runtime, no entitlements) ===
+              echo "=== Step 3: Signing helper apps ==="
+              find "$APP/Contents" -name "*.app" -type d -not -path "$APP" | while read -r helper; do
                 echo "Signing helper: $helper"
-                codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$helper" || echo "WARN: failed to sign $helper"
+                codesign --force --options runtime --timestamp --sign "$IDENTITY" "$helper"
               done
 
-              # Sign the main app with entitlements
-              echo "=== Signing main .app with Developer ID ==="
-              codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "/tmp/$APP_NAME"
+              # === STEP 4: Sign main .app bundle LAST (with runtime + entitlements) ===
+              echo "=== Step 4: Signing main app with Developer ID + entitlements ==="
+              codesign --force --options runtime --timestamp \
+                --entitlements "$ENTITLEMENTS" \
+                --sign "$IDENTITY" "$APP"
 
-              # === DIAGNOSTIC: Verify signature ===
-              echo "=== Verifying signature ==="
-              codesign --verify --verbose=4 --strict "/tmp/$APP_NAME"
-              echo "=== spctl assessment ==="
-              spctl -a -vvv --type exec "/tmp/$APP_NAME" || echo "spctl check done (may fail without notarization)"
-              echo "=== Checking entitlements on signed app ==="
-              codesign -d --entitlements :- "/tmp/$APP_NAME"
+              # === VERIFICATION ===
+              echo "=== Verifying main app signature ==="
+              codesign --verify --verbose=4 --strict "$APP"
 
-              # === DIAGNOSTIC: Verify ALL nested binaries ===
-              echo "=== Verifying all nested Mach-O signatures ==="
-              SIGN_ERRORS=0
-              find "/tmp/$APP_NAME" -type f -print0 | xargs -0 file | grep 'Mach-O' | awk -F: '{print $1}' | while read -r binary; do
-                if ! codesign --verify --verbose=2 --strict "$binary" 2>/dev/null; then
-                  echo "FAILED: $binary"
-                  SIGN_ERRORS=$((SIGN_ERRORS + 1))
+              echo "=== Verifying framework bundles ==="
+              find "$APP/Contents/Frameworks" -name "*.framework" -type d | while read -r fw; do
+                if codesign --verify --verbose=2 --strict "$fw" 2>&1; then
+                  echo "OK: $fw"
+                else
+                  echo "FAILED: $fw"
                 fi
               done
-              echo "=== Signature verification errors: $SIGN_ERRORS ==="
 
-              # Re-create DMG with signed app
+              echo "=== spctl assessment ==="
+              spctl -a -vvv --type exec "$APP" 2>&1 || echo "(expected: rejected without notarization)"
+
+              echo "=== Entitlements on main app ==="
+              codesign -d --entitlements :- "$APP"
+
+              echo "=== Entitlements on a framework (should be NONE) ==="
+              codesign -d --entitlements :- "$APP/Contents/Frameworks/FlutterMacOS.framework" 2>&1 || true
+
+              # === Rebuild DMG with signed app ===
               echo "=== Rebuilding DMG with signed app ==="
               rm -f "$DMG_PATH"
-              hdiutil create -volname "Drift VPN" -srcfolder "/tmp/$APP_NAME" -ov -format UDZO "$DMG_PATH"
+              hdiutil create -volname "Drift VPN" -srcfolder "$APP" -ov -format UDZO "$DMG_PATH"
               codesign --force --timestamp --sign "$IDENTITY" "$DMG_PATH"
 
-              # === NOTARIZATION via ZIP (more reliable than DMG) ===
+              # === NOTARIZATION via ZIP ===
               echo "=== Creating ZIP for notarization ==="
-              ditto -c -k --keepParent "/tmp/$APP_NAME" /tmp/drift-notarize.zip
+              ditto -c -k --keepParent "$APP" /tmp/drift-notarize.zip
               echo "=== ZIP size: $(du -h /tmp/drift-notarize.zip | cut -f1) ==="
 
               echo "=== Submitting ZIP for notarization ==="
@@ -500,32 +503,31 @@ jobs:
                     --issuer "$API_ISSUER_ID" 2>&1 || true)
                   echo "Check $i: $STATUS"
                   if echo "$STATUS" | grep -q "Accepted"; then
-                    echo "✅ Notarization accepted!"
+                    echo "Notarization accepted!"
                     xcrun stapler staple "$DMG_PATH"
-                    echo "✅ DMG stapled with notarization ticket"
+                    echo "DMG stapled with notarization ticket"
                     break
                   elif echo "$STATUS" | grep -q "Invalid\|Rejected"; then
-                    echo "❌ Notarization rejected. Fetching log..."
+                    echo "Notarization rejected. Fetching log..."
                     xcrun notarytool log "$SUBMISSION_ID" \
                       --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
                       --key-id "$API_KEY_ID" \
                       --issuer "$API_ISSUER_ID" 2>&1 || true
-                    echo "⚠️ Continuing with signed but not notarized DMG"
+                    echo "Continuing with signed but not notarized DMG"
                     break
                   fi
                   if [ $i -eq 40 ]; then
-                    echo "⚠️ Notarization still in progress after 20 min."
-                    echo "=== Attempting to fetch log anyway ==="
+                    echo "Notarization still in progress after 20 min."
                     xcrun notarytool log "$SUBMISSION_ID" \
                       --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
                       --key-id "$API_KEY_ID" \
                       --issuer "$API_ISSUER_ID" 2>&1 || true
-                    echo "⚠️ Continuing with signed DMG."
+                    echo "Continuing with signed DMG."
                   fi
                 done
               fi
 
-              rm -rf "/tmp/$APP_NAME" /tmp/drift-notarize.zip
+              rm -rf "$APP" /tmp/drift-notarize.zip
             else
               hdiutil detach "$MOUNT_POINT" -quiet || true
               echo "⚠️ No .app found inside DMG"
