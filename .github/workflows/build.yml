@@ -226,7 +226,7 @@ jobs:
           echo "keyAlias=${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}" >> android/key.properties
 
       - name: Setup Windows Signing Properties
-        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') }}
+        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') && secrets.WINDOWS_SIGNING_KEY != '' }}
         continue-on-error: true
         run: |
             [IO.File]::WriteAllBytes("windows\sign.pfx", [Convert]::FromBase64String("${{ secrets.WINDOWS_SIGNING_KEY }}"))
@@ -275,7 +275,7 @@ jobs:
           }
 
       - name: Code Sign
-        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') }}
+        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') && secrets.WINDOWS_SIGNING_KEY != '' }}
         continue-on-error: true
         uses: hiddify/signtool-code-sign-sha256@main
         with:
@@ -758,10 +758,19 @@ jobs:
         run: |
           mkdir -p ~/private_keys
           printf "%s" "$API_PRIVATE_KEY" > ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          echo "=== IPA file info ==="
+          ls -la out/Drift-iOS.ipa
           echo "=== Uploading IPA to TestFlight ==="
           xcrun altool --upload-app \
             -f out/Drift-iOS.ipa \
             -t ios \
             --apiKey "$API_KEY_ID" \
             --apiIssuer "$API_ISSUER_ID" \
-            --verbose
+            --verbose 2>&1
+          UPLOAD_EXIT=$?
+          echo "=== Upload exit code: $UPLOAD_EXIT ==="
+          if [ $UPLOAD_EXIT -ne 0 ]; then
+            echo "=== altool failed, check that APPSTORE_API_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_API_PRIVATE_KEY secrets are correctly set ==="
+            echo "=== Also check that the app exists in App Store Connect with bundle ID com.drift.vpn ==="
+          fi
+          rm -rf ~/private_keys
