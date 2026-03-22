@@ -478,7 +478,7 @@ jobs:
               hdiutil create -volname "Drift VPN" -srcfolder "$APP" -ov -format UDZO "$DMG_PATH"
               codesign --force --timestamp --sign "$IDENTITY" "$DMG_PATH"
 
-              # === NOTARIZATION via ZIP ===
+              # === NOTARIZATION via ZIP (non-blocking, 5 min max) ===
               echo "=== Creating ZIP for notarization ==="
               ditto -c -k --keepParent "$APP" /tmp/drift-notarize.zip
               echo "=== ZIP size: $(du -h /tmp/drift-notarize.zip | cut -f1) ==="
@@ -492,39 +492,35 @@ jobs:
               SUBMISSION_ID=$(echo "$NOTARIZE_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
               echo "=== Submission ID: $SUBMISSION_ID ==="
 
-              # Wait up to 20 minutes for notarization
+              # Quick check (5 min max) — Apple may take hours for new accounts
               if [ -n "$SUBMISSION_ID" ]; then
-                echo "=== Waiting for notarization (max 20 min) ==="
-                for i in $(seq 1 40); do
+                echo "=== Waiting for notarization (max 5 min) ==="
+                for i in $(seq 1 10); do
                   sleep 30
                   STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
                     --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
                     --key-id "$API_KEY_ID" \
                     --issuer "$API_ISSUER_ID" 2>&1 || true)
-                  echo "Check $i: $STATUS"
+                  echo "Check $i: $(echo "$STATUS" | grep 'status:')"
                   if echo "$STATUS" | grep -q "Accepted"; then
                     echo "Notarization accepted!"
                     xcrun stapler staple "$DMG_PATH"
-                    echo "DMG stapled with notarization ticket"
                     break
                   elif echo "$STATUS" | grep -q "Invalid\|Rejected"; then
-                    echo "Notarization rejected. Fetching log..."
+                    echo "Notarization rejected:"
                     xcrun notarytool log "$SUBMISSION_ID" \
                       --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
                       --key-id "$API_KEY_ID" \
                       --issuer "$API_ISSUER_ID" 2>&1 || true
-                    echo "Continuing with signed but not notarized DMG"
                     break
                   fi
-                  if [ $i -eq 40 ]; then
-                    echo "Notarization still in progress after 20 min."
-                    xcrun notarytool log "$SUBMISSION_ID" \
-                      --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
-                      --key-id "$API_KEY_ID" \
-                      --issuer "$API_ISSUER_ID" 2>&1 || true
-                    echo "Continuing with signed DMG."
-                  fi
                 done
+                echo "=== Notarization history ==="
+                xcrun notarytool history \
+                  --key ~/private_keys/AuthKey_${API_KEY_ID}.p8 \
+                  --key-id "$API_KEY_ID" \
+                  --issuer "$API_ISSUER_ID" 2>&1 | head -20 || true
+                echo "=== Continuing with signed DMG (notarization may complete later) ==="
               fi
 
               rm -rf "$APP" /tmp/drift-notarize.zip
