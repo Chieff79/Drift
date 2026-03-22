@@ -301,36 +301,11 @@ class _ConnectedIpCard extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // VPN flag with green dot indicator
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _IpFlag(
+          _IpFlag(
                 countryCode: countryCode.isEmpty ? null : countryCode,
                 size: 44,
                 loading: activeProxy.isLoading,
               ),
-              Positioned(
-                right: -2,
-                bottom: -2,
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF30D158),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.colorScheme.surface, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF30D158).withValues(alpha: .5),
-                        blurRadius: 6,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
 
           const Gap(14),
 
