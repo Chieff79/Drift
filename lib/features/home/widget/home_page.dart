@@ -9,6 +9,7 @@ import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/home/notifier/real_ip_notifier.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
+import 'dart:math';
 import 'package:hiddify/features/home/widget/globe_widget.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/widget/profile_tile.dart';
@@ -37,6 +38,10 @@ class HomePage extends HookConsumerWidget {
     // Prefer real IP check country, fall back to proxy node country
     final vpnCountryCode = vpnIpInfo.valueOrNull?.countryCode
         ?? activeProxy.valueOrNull?.ipinfo.countryCode;
+
+    // Globe rotation controlled from here so horizontal drag works with scroll
+    final globeLat = useState(0.3);
+    final globeLng = useState(0.2);
 
     return Scaffold(
       appBar: AppBar(
@@ -76,19 +81,28 @@ class HomePage extends HookConsumerWidget {
           const Gap(8),
         ],
       ),
-      body: Stack(
+      body: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          // Horizontal swipe rotates the globe (doesn't conflict with vertical scroll)
+          final screenW = MediaQuery.of(context).size.width;
+          final r = min(screenW, MediaQuery.of(context).size.height) / 2 * 0.85;
+          globeLng.value -= details.delta.dx * 1.2 / r;
+        },
+        child: Stack(
         children: [
-          // ── Full-screen interactive map background ─────────────
+          // ── Full-screen interactive 3D globe ────────────────
           Positioned.fill(
             child: GlobeWidget(
               isConnected: isConnected,
               isConnecting: isConnecting,
               userCountryCode: userCountryCode,
               vpnCountryCode: vpnCountryCode,
+              viewLatNotifier: globeLat,
+              viewLngNotifier: globeLng,
             ),
           ),
 
-          // ── UI content on top of the map ──────────────────────
+          // ── UI content on top of the globe ──────────────────
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
@@ -143,6 +157,7 @@ class HomePage extends HookConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
