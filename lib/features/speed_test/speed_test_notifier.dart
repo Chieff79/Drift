@@ -142,7 +142,10 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
 
     try {
       // ── 1. Select server ────────────────────────────────────────────────────
-      final server = await _service!.selectBestServer(
+      final svc = _service;
+      if (svc == null) return;
+
+      final server = await svc.selectBestServer(
         onStatus: (msg) {
           if (!_disposed) state = state.copyWith(statusMessage: msg);
         },
@@ -176,8 +179,9 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
       }
 
       // ── 2. Ping phase ───────────────────────────────────────────────────────
+      if (_service == null) return; // cancelled
       state = state.copyWith(phase: SpeedTestPhase.ping, progress: 0, currentSpeed: 0);
-      final pingResult = await _service!.measurePing(
+      final pingResult = await svc.measurePing(
         server: server,
         onProgress: (currentPing) {
           if (!_disposed) state = state.copyWith(currentSpeed: currentPing);
@@ -190,8 +194,9 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
       );
 
       // ── 3. Download phase ───────────────────────────────────────────────────
+      if (_service == null) return; // cancelled
       state = state.copyWith(phase: SpeedTestPhase.download, progress: 0, currentSpeed: 0);
-      final dlSpeed = await _service!.measureDownloadSpeed(
+      final dlSpeed = await svc.measureDownloadSpeed(
         server: server,
         onProgress: (speed) {
           if (!_disposed) state = state.copyWith(currentSpeed: speed);
@@ -200,8 +205,9 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
       state = state.copyWith(downloadSpeed: dlSpeed, progress: 1.0);
 
       // ── 4. Upload phase ─────────────────────────────────────────────────────
+      if (_service == null) return; // cancelled
       state = state.copyWith(phase: SpeedTestPhase.upload, progress: 0, currentSpeed: 0);
-      final ulSpeed = await _service!.measureUploadSpeed(
+      final ulSpeed = await svc.measureUploadSpeed(
         server: server,
         onProgress: (speed) {
           if (!_disposed) state = state.copyWith(currentSpeed: speed);
@@ -215,6 +221,7 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
         statusMessage: null,
       );
     } catch (e) {
+      if (_service == null) return; // cancelled — not an error
       state = state.copyWith(
         phase: SpeedTestPhase.idle,
         error: 'Ошибка теста скорости: ${e.toString()}',

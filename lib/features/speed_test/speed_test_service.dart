@@ -236,7 +236,8 @@ class SpeedTestService {
   }
 
   /// Measure upload speed through VPN
-  /// Uses smaller chunks and fewer streams on iOS to avoid
+  /// Uses large streaming POST requests with keep-alive connections
+  /// to maximize throughput. Smaller chunks on iOS to avoid
   /// overwhelming the Network Extension (PacketTunnel) memory limit.
   Future<double> measureUploadSpeed({
     required SpeedServer server,
@@ -244,11 +245,11 @@ class SpeedTestService {
     void Function(double currentSpeedMbps)? onProgress,
   }) async {
     _cancelled = false;
-    // iOS Network Extension has ~50 MB memory limit.
-    // Aggressive upload bursts can crash the tunnel provider.
     final bool isAppleMobile = Platform.isIOS;
-    final int streamCount = isAppleMobile ? 2 : 4;
-    final int chunkSize = isAppleMobile ? 256 * 1024 : 1024 * 1024; // 256 KB on iOS, 1 MB otherwise
+    // More streams and larger chunks for better throughput
+    final int streamCount = isAppleMobile ? 2 : 6;
+    // Larger payload per POST: 10MB desktop, 512KB iOS
+    final int chunkSize = isAppleMobile ? 512 * 1024 : 10 * 1024 * 1024;
 
     final random = Random();
     final uploadData = Uint8List(chunkSize);
@@ -260,7 +261,6 @@ class SpeedTestService {
     final sw = Stopwatch()..start();
 
     late final Timer progressTimer;
-    // ignore: prefer_final_locals
     progressTimer = Timer.periodic(const Duration(milliseconds: 250), (t) {
       if (sw.elapsedMilliseconds > 0 && !_cancelled && !_disposed) {
         final speed = (totalBytes * 8) / (sw.elapsedMilliseconds * 1000);
@@ -273,20 +273,22 @@ class SpeedTestService {
 
     try {
       final futures = List.generate(streamCount, (_) async {
+        // Single client per stream — reuses TCP connection (keep-alive)
         final client = _createVpnClient();
+        client.idleTimeout = const Duration(seconds: 30);
         try {
           while (!_disposed && !_cancelled && sw.elapsed < duration) {
             try {
               final req = await client.postUrl(Uri.parse(server.uploadUrl));
               req.headers.contentType = ContentType.binary;
+              req.persistentConnection = true; // keep-alive
               req.contentLength = uploadData.length;
               req.add(uploadData);
               final resp = await req.close();
               await resp.drain<void>();
               totalBytes += uploadData.length;
-              // Small delay on iOS to let the tunnel provider breathe
               if (isAppleMobile) {
-                await Future.delayed(const Duration(milliseconds: 10));
+                await Future.delayed(const Duration(milliseconds: 5));
               }
             } catch (_) {
               break;
