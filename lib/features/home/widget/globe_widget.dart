@@ -127,6 +127,7 @@ class GlobeWidget extends HookWidget {
     required this.isConnecting,
     this.userCountryCode,
     this.vpnCountryCode,
+    this.thirdCountryCode,
     this.viewLatNotifier,
     this.viewLngNotifier,
   });
@@ -135,6 +136,8 @@ class GlobeWidget extends HookWidget {
   final bool isConnecting;
   final String? userCountryCode;
   final String? vpnCountryCode;
+  /// Optional third point (e.g. speed test server) shown as a cyan dot with arcs.
+  final String? thirdCountryCode;
 
   /// If provided, the parent controls rotation. Otherwise, internal GestureDetector is used.
   final ValueNotifier<double>? viewLatNotifier;
@@ -191,10 +194,15 @@ class GlobeWidget extends HookWidget {
       if (isConnected || isConnecting) {
         final u = _getLatLng(userCountryCode);
         final v = _getLatLng(vpnCountryCode);
+        final t = _getLatLng(thirdCountryCode);
         double tLat, tLng;
-        if (u != null && v != null) {
-          tLat = _deg2rad((u.$1 + v.$1) / 2);
-          tLng = _deg2rad((u.$2 + v.$2) / 2);
+        // Center view to show all points
+        final allPts = [if (u != null) u, if (v != null) v, if (t != null) t];
+        if (allPts.length >= 2) {
+          final avgLat = allPts.map((p) => p.$1).reduce((a, b) => a + b) / allPts.length;
+          final avgLng = allPts.map((p) => p.$2).reduce((a, b) => a + b) / allPts.length;
+          tLat = _deg2rad(avgLat);
+          tLng = _deg2rad(avgLng);
         } else if (v != null) {
           tLat = _deg2rad(v.$1); tLng = _deg2rad(v.$2);
         } else if (u != null) {
@@ -209,7 +217,7 @@ class GlobeWidget extends HookWidget {
         autoRotateCtrl.forward(from: 0);
       }
       return null;
-    }, [isConnected, isConnecting, userCountryCode, vpnCountryCode]);
+    }, [isConnected, isConnecting, userCountryCode, vpnCountryCode, thirdCountryCode]);
 
     useEffect(() {
       void listener() {
@@ -223,6 +231,7 @@ class GlobeWidget extends HookWidget {
 
     final userLatLng = _getLatLng(userCountryCode);
     final vpnLatLng = _getLatLng(vpnCountryCode);
+    final thirdLatLng = _getLatLng(thirdCountryCode);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -241,6 +250,7 @@ class GlobeWidget extends HookWidget {
                 radius: r,
                 userLatLng: userLatLng,
                 vpnLatLng: vpnLatLng,
+                thirdLatLng: thirdLatLng,
                 isConnected: isConnected,
                 isConnecting: isConnecting && !isConnected,
                 pulseValue: pulseCtrl.value,
@@ -288,6 +298,7 @@ class _GlobePainter extends CustomPainter {
     required this.radius,
     required this.userLatLng,
     required this.vpnLatLng,
+    this.thirdLatLng,
     required this.isConnected,
     required this.isConnecting,
     required this.pulseValue,
@@ -298,13 +309,14 @@ class _GlobePainter extends CustomPainter {
   });
 
   final double viewLat, viewLng, radius;
-  final (double, double)? userLatLng, vpnLatLng;
+  final (double, double)? userLatLng, vpnLatLng, thirdLatLng;
   final bool isConnected, isConnecting, isDark;
   final double pulseValue, arcProgress, connectingPulse, particleProgress;
 
   static const _userDotColor = Color(0xFF1A4A9B);
   static const _vpnDotColor = Color(0xFF30D158);
   static const _connectingColor = Color(0xFFB9A847);
+  static const _thirdDotColor = Color(0xFF4FC3F7);
 
   // ────────────────────────────────────────────────────────────────
   // Improved continent outlines with more points for accuracy
@@ -467,14 +479,19 @@ class _GlobePainter extends CustomPainter {
     _drawGridLines(canvas, center);
     _drawContinents(canvas, center);
     _drawCityDots(canvas, center);
+    _drawLighting(canvas, center);
 
     canvas.restore();
 
     _drawAtmosphere(canvas, center);
 
-    // Arc
+    // Arc: user → vpn
     if ((isConnected || isConnecting) && userLatLng != null && vpnLatLng != null && arcProgress > 0) {
-      _drawGreatCircleArc(canvas, center);
+      _drawGreatCircleArc(canvas, center, userLatLng!, vpnLatLng!, _userDotColor, _vpnDotColor);
+    }
+    // Arc: vpn → third (speed test server)
+    if (isConnected && vpnLatLng != null && thirdLatLng != null && arcProgress >= 1.0) {
+      _drawGreatCircleArc(canvas, center, vpnLatLng!, thirdLatLng!, _vpnDotColor, _thirdDotColor);
     }
 
     // User dot
@@ -487,6 +504,12 @@ class _GlobePainter extends CustomPainter {
     if (vpnLatLng != null && (isConnected || isConnecting)) {
       final p = _project(vpnLatLng!.$1, vpnLatLng!.$2);
       if (p != null) _drawVpnDot(canvas, Offset(cx + p.$1, cy + p.$2));
+    }
+
+    // Third dot (speed test server)
+    if (thirdLatLng != null && isConnected) {
+      final p = _project(thirdLatLng!.$1, thirdLatLng!.$2);
+      if (p != null) _drawThirdDot(canvas, Offset(cx + p.$1, cy + p.$2));
     }
   }
 
@@ -504,34 +527,77 @@ class _GlobePainter extends CustomPainter {
     return (radius * cosLat * sin(dLng), -radius * (cosLat0 * sinLat - sinLat0 * cosLat * cosDLng));
   }
 
+  // Continent fill colors: Africa, Europe, GB, Asia, Japan, N.America, S.America, Australia, India, Madagascar, NZ, NZ
+  static const _continentColors = <Color>[
+    Color(0xFFD4A86A), // Africa — sandy
+    Color(0xFF5CA04E), // Europe — green
+    Color(0xFF4E9643), // Great Britain — green
+    Color(0xFF7CB668), // Asia — light green
+    Color(0xFF5CA04E), // Japan — green
+    Color(0xFF6AAF5C), // North America — green
+    Color(0xFF3D8B35), // South America — dark green (tropical)
+    Color(0xFFC4884A), // Australia — orange/brown (desert)
+    Color(0xFF8AAD5A), // India — yellow-green
+    Color(0xFF4E9643), // Madagascar — green
+    Color(0xFF5CA04E), // New Zealand North — green
+    Color(0xFF5CA04E), // New Zealand South — green
+  ];
+
+  // Ocean colors
+  static const _oceanDeep = Color(0xFF0B3D6B);
+  static const _oceanLight = Color(0xFF1B6AAF);
+
   void _drawGlobeSurface(Canvas canvas, Offset center) {
+    // Solid blue ocean with 3D shading — light from upper-left
+    final lightOffset = Offset(center.dx - radius * 0.35, center.dy - radius * 0.35);
     canvas.drawCircle(center, radius, Paint()
-      ..shader = ui.Gradient.radial(center, radius,
-        [isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.withValues(alpha: 0.08),
-         isDark ? Colors.white.withValues(alpha: 0.015) : Colors.grey.withValues(alpha: 0.02)],
+      ..shader = ui.Gradient.radial(lightOffset, radius * 2.2,
+        [_oceanLight, _oceanDeep],
         [0.0, 1.0]));
   }
 
   void _drawAtmosphere(Canvas canvas, Offset center) {
-    canvas.drawCircle(center, radius * 1.12, Paint()
-      ..shader = ui.Gradient.radial(center, radius * 1.12,
-        [Colors.transparent, const Color(0xFF4A8FE7).withValues(alpha: 0.0),
-         const Color(0xFF4A8FE7).withValues(alpha: 0.06),
-         const Color(0xFF4A8FE7).withValues(alpha: 0.02), Colors.transparent],
-        [0.0, 0.85, 0.93, 1.0, 1.0]));
+    // Glow around globe
+    canvas.drawCircle(center, radius * 1.08, Paint()
+      ..shader = ui.Gradient.radial(center, radius * 1.08,
+        [Colors.transparent, Colors.transparent,
+         const Color(0xFF4A9FE7).withValues(alpha: 0.12),
+         const Color(0xFF4A9FE7).withValues(alpha: 0.04), Colors.transparent],
+        [0.0, 0.88, 0.95, 1.0, 1.0]));
+    // Rim
     canvas.drawCircle(center, radius, Paint()
-      ..color = const Color(0xFF4A8FE7).withValues(alpha: 0.12)
+      ..color = const Color(0xFF5AAFE7).withValues(alpha: 0.25)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0);
+      ..strokeWidth = 1.5);
+  }
+
+  void _drawLighting(Canvas canvas, Offset center) {
+    // Specular highlight — top-left
+    final hlCenter = Offset(center.dx - radius * 0.3, center.dy - radius * 0.35);
+    canvas.drawCircle(center, radius, Paint()
+      ..shader = ui.Gradient.radial(hlCenter, radius * 0.8,
+        [Colors.white.withValues(alpha: 0.18), Colors.white.withValues(alpha: 0.03), Colors.transparent],
+        [0.0, 0.4, 1.0]));
+    // Shadow — bottom-right
+    final shCenter = Offset(center.dx + radius * 0.5, center.dy + radius * 0.5);
+    canvas.drawCircle(center, radius, Paint()
+      ..shader = ui.Gradient.radial(shCenter, radius * 0.6,
+        [Colors.black.withValues(alpha: 0.2), Colors.transparent],
+        [0.0, 1.0]));
+    // Edge darkening
+    canvas.drawCircle(center, radius, Paint()
+      ..shader = ui.Gradient.radial(center, radius,
+        [Colors.transparent, Colors.transparent, Colors.black.withValues(alpha: 0.15)],
+        [0.0, 0.75, 1.0]));
   }
 
   void _drawGridLines(Canvas canvas, Offset center) {
     final cx = center.dx;
     final cy = center.dy;
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: isDark ? 0.04 : 0.03)
+      ..color = Colors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
+      ..strokeWidth = 0.4;
 
     for (double lngDeg = -180; lngDeg < 180; lngDeg += 30) {
       final path = Path();
@@ -562,13 +628,15 @@ class _GlobePainter extends CustomPainter {
   void _drawContinents(Canvas canvas, Offset center) {
     final cx = center.dx;
     final cy = center.dy;
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: isDark ? 0.22 : 0.15)
+    final borderPaint = Paint()
+      ..color = const Color(0xFF2A5020).withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8
       ..strokeJoin = StrokeJoin.round;
 
-    for (final outline in _continents) {
+    for (int i = 0; i < _continents.length; i++) {
+      final outline = _continents[i];
+      final baseColor = i < _continentColors.length ? _continentColors[i] : const Color(0xFF5CA04E);
       final path = Path();
       var started = false;
       for (final pt in outline) {
@@ -578,32 +646,43 @@ class _GlobePainter extends CustomPainter {
           else { path.lineTo(cx + p.$1, cy + p.$2); }
         } else { started = false; }
       }
-      canvas.drawPath(path, paint);
+      path.close();
+      canvas.drawPath(path, Paint()..color = baseColor..style = PaintingStyle.fill);
+      // Subtle relief: lighter highlights
+      canvas.drawPath(path, Paint()
+        ..color = Colors.white.withValues(alpha: 0.08)
+        ..style = PaintingStyle.fill);
+      canvas.drawPath(path, borderPaint);
     }
   }
 
   void _drawCityDots(Canvas canvas, Offset center) {
     final cx = center.dx;
     final cy = center.dy;
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: isDark ? 0.15 : 0.10)
+    final dotPaint = Paint()
+      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.7)
       ..style = PaintingStyle.fill;
+    final glowPaint = Paint()
+      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
 
     for (final city in _majorCities) {
       final p = _project(city.$1, city.$2);
       if (p != null) {
-        canvas.drawCircle(Offset(cx + p.$1, cy + p.$2), 1.5, paint);
+        final pos = Offset(cx + p.$1, cy + p.$2);
+        canvas.drawCircle(pos, 2.5, glowPaint);
+        canvas.drawCircle(pos, 1.2, dotPaint);
       }
     }
   }
 
   void _drawUserDot(Canvas canvas, Offset c) {
-    canvas.drawCircle(c, 12, Paint()..color = _userDotColor.withValues(alpha: 0.15)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
-    canvas.drawCircle(c, 8, Paint()..color = _userDotColor.withValues(alpha: 0.25)
-      ..style = PaintingStyle.stroke..strokeWidth = 1.5);
-    canvas.drawCircle(c, 4, Paint()..color = _userDotColor);
-    canvas.drawCircle(c, 1.5, Paint()..color = Colors.white.withValues(alpha: 0.9));
+    canvas.drawCircle(c, 14, Paint()..color = _userDotColor.withValues(alpha: 0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+    canvas.drawCircle(c, 9, Paint()..color = _userDotColor.withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke..strokeWidth = 2.0);
+    canvas.drawCircle(c, 5, Paint()..color = _userDotColor);
+    canvas.drawCircle(c, 2, Paint()..color = Colors.white.withValues(alpha: 0.95));
   }
 
   void _drawVpnDot(Canvas canvas, Offset c) {
@@ -626,13 +705,28 @@ class _GlobePainter extends CustomPainter {
     canvas.drawCircle(c, 1.8, Paint()..color = Colors.white.withValues(alpha: 0.9));
   }
 
-  void _drawGreatCircleArc(Canvas canvas, Offset center) {
-    if (userLatLng == null || vpnLatLng == null) return;
+  void _drawThirdDot(Canvas canvas, Offset c) {
+    canvas.drawCircle(c, 10, Paint()..color = _thirdDotColor.withValues(alpha: 0.18)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+    canvas.drawCircle(c, 7, Paint()..color = _thirdDotColor.withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawCircle(c, 4.5, Paint()..color = _thirdDotColor);
+    canvas.drawCircle(c, 1.8, Paint()..color = Colors.white.withValues(alpha: 0.9));
+  }
+
+  void _drawGreatCircleArc(
+    Canvas canvas,
+    Offset center,
+    (double, double) fromLatLng,
+    (double, double) toLatLng,
+    Color fromColor,
+    Color toColor,
+  ) {
     final cx = center.dx;
     final cy = center.dy;
 
-    final lat1 = _deg2rad(userLatLng!.$1), lng1 = _deg2rad(userLatLng!.$2);
-    final lat2 = _deg2rad(vpnLatLng!.$1), lng2 = _deg2rad(vpnLatLng!.$2);
+    final lat1 = _deg2rad(fromLatLng.$1), lng1 = _deg2rad(fromLatLng.$2);
+    final lat2 = _deg2rad(toLatLng.$1), lng2 = _deg2rad(toLatLng.$2);
 
     final x1 = cos(lat1) * cos(lng1), y1 = cos(lat1) * sin(lng1), z1 = sin(lat1);
     final x2 = cos(lat2) * cos(lng2), y2 = cos(lat2) * sin(lng2), z2 = sin(lat2);
@@ -673,7 +767,7 @@ class _GlobePainter extends CustomPainter {
     for (int i = 0; i < total; i++) {
       if (!visible[i] || !visible[i + 1]) continue;
       final t = i / segments;
-      final c = Color.lerp(_userDotColor.withValues(alpha: 0.6), _vpnDotColor.withValues(alpha: 0.6), t)!;
+      final c = Color.lerp(fromColor.withValues(alpha: 0.6), toColor.withValues(alpha: 0.6), t)!;
       arcPaint.color = c;
       canvas.drawLine(points[i], points[i + 1], arcPaint);
       glowPaint.color = c.withValues(alpha: 0.1);
@@ -685,7 +779,7 @@ class _GlobePainter extends CustomPainter {
         final off = (particleProgress + p / 3.0) % 1.0;
         final idx = (off * segments).round().clamp(0, segments);
         if (idx < points.length && visible[idx]) {
-          canvas.drawCircle(points[idx], 4, Paint()..color = _vpnDotColor.withValues(alpha: 0.3)
+          canvas.drawCircle(points[idx], 4, Paint()..color = toColor.withValues(alpha: 0.3)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
           canvas.drawCircle(points[idx], 2, Paint()..color = Colors.white.withValues(alpha: 0.9));
         }
@@ -699,5 +793,5 @@ class _GlobePainter extends CustomPainter {
       o.pulseValue != pulseValue || o.arcProgress != arcProgress ||
       o.connectingPulse != connectingPulse || o.particleProgress != particleProgress ||
       o.isConnected != isConnected || o.isConnecting != isConnecting ||
-      o.userLatLng != userLatLng || o.vpnLatLng != vpnLatLng;
+      o.userLatLng != userLatLng || o.vpnLatLng != vpnLatLng || o.thirdLatLng != thirdLatLng;
 }

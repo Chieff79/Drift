@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/home/widget/globe_widget.dart';
+import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/speed_test/speed_test_notifier.dart';
 import 'package:hiddify/features/speed_test/speed_test_service.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -16,6 +17,8 @@ class SpeedTestPage extends HookConsumerWidget {
     final state = ref.watch(speedTestNotifierProvider);
     final connectionStatus = ref.watch(connectionNotifierProvider);
     final isVpnActive = connectionStatus.valueOrNull?.isConnected ?? false;
+    final vpnIpInfo = ref.watch(ipInfoNotifierProvider);
+    final vpnCountryCode = vpnIpInfo.valueOrNull?.countryCode;
     final isRunning = state.phase != SpeedTestPhase.idle &&
         state.phase != SpeedTestPhase.complete;
     final hasResults = state.phase == SpeedTestPhase.complete;
@@ -29,7 +32,8 @@ class SpeedTestPage extends HookConsumerWidget {
               isConnected: isRunning || hasResults,
               isConnecting: state.phase == SpeedTestPhase.selectingServer,
               userCountryCode: state.userCountryCode,
-              vpnCountryCode: state.serverCountryCode,
+              vpnCountryCode: vpnCountryCode,
+              thirdCountryCode: state.serverCountryCode,
             ),
           ),
 

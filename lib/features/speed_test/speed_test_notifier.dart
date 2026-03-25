@@ -18,6 +18,7 @@ class SpeedTestState {
   final String? serverName;
   final String? userCountryCode;
   final String? serverCountryCode;
+  final String? vpnCountryCode;
   final bool isVpnActive;
   final String? error;
   final String? statusMessage;
@@ -38,6 +39,7 @@ class SpeedTestState {
     this.serverName,
     this.userCountryCode,
     this.serverCountryCode,
+    this.vpnCountryCode,
     this.isVpnActive = false,
     this.error,
     this.statusMessage,
@@ -58,6 +60,7 @@ class SpeedTestState {
     String? serverName,
     String? userCountryCode,
     String? serverCountryCode,
+    String? vpnCountryCode,
     bool? isVpnActive,
     String? error,
     String? statusMessage,
@@ -77,6 +80,7 @@ class SpeedTestState {
       serverName: serverName ?? this.serverName,
       userCountryCode: userCountryCode ?? this.userCountryCode,
       serverCountryCode: serverCountryCode ?? this.serverCountryCode,
+      vpnCountryCode: vpnCountryCode ?? this.vpnCountryCode,
       isVpnActive: isVpnActive ?? this.isVpnActive,
       error: error,
       statusMessage: statusMessage ?? this.statusMessage,
