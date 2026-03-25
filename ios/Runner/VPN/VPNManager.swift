@@ -113,12 +113,12 @@ class VPNManager: ObservableObject {
     
     private func enableVPNManager() async throws {
         manager.isEnabled = true
-        let rule = NEOnDemandRuleConnect()
-        rule.interfaceTypeMatch = .any
-        rule.probeURL = URL(string: "http://captive.apple.com")
-        manager.onDemandRules = [rule]
-        manager.isOnDemandEnabled = true
-        
+        // On-demand disabled: allows iOS Control Center VPN toggle to work properly.
+        // With on-demand enabled, iOS auto-reconnects immediately after user disconnects
+        // from Control Center, making the toggle appear broken.
+        manager.isOnDemandEnabled = false
+        manager.onDemandRules = []
+
         do {
             try await manager.saveToPreferences()
             try await manager.loadFromPreferences()
