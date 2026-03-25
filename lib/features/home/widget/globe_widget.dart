@@ -264,7 +264,7 @@ class GlobeWidget extends HookWidget {
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         final h = constraints.maxHeight;
-        final r = min(w, h) / 2 * 0.85;
+        final r = min(w, h) / 2 * 0.68;
 
         Widget painter = ListenableBuilder(
           listenable: Listenable.merge([pulseCtrl, arcCtrl, connectingCtrl, particleCtrl, viewLat, viewLng]),
@@ -418,10 +418,10 @@ class _GlobePainter extends CustomPainter {
     final imgW = img.width.toDouble();
     final imgH = img.height.toDouble();
 
-    const latStep = 3.0;
-    const lngStep = 3.0;
-    const latSteps = 60; // 180 / 3
-    const lngSteps = 120; // 360 / 3
+    const latStep = 2.0;
+    const lngStep = 2.0;
+    const latSteps = 90; // 180 / 2
+    const lngSteps = 180; // 360 / 2
     const gridSize = (latSteps + 1) * (lngSteps + 1);
 
     final positions = Float32List(gridSize * 2);
