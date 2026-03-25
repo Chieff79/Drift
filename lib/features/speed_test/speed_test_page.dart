@@ -397,28 +397,31 @@ class _BottomPanel extends StatelessWidget {
         children: [
           // Speed results row
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _SpeedDisplay(
-                icon: Icons.arrow_downward_rounded,
-                label: 'Загрузка',
-                value: state.phase == SpeedTestPhase.download
-                    ? formatSpeedLive(state.currentSpeed)
-                    : formatSpeed(state.downloadSpeed ?? 0),
-                unit: 'Мбит/с',
-                color: const Color(0xFF4FC3F7),
-                isActive: state.phase == SpeedTestPhase.download,
+              Expanded(
+                child: _SpeedDisplay(
+                  icon: Icons.arrow_downward_rounded,
+                  label: 'Загрузка',
+                  value: state.phase == SpeedTestPhase.download
+                      ? formatSpeedLive(state.currentSpeed)
+                      : formatSpeed(state.downloadSpeed ?? 0),
+                  unit: 'Мбит/с',
+                  color: const Color(0xFF4FC3F7),
+                  isActive: state.phase == SpeedTestPhase.download,
+                ),
               ),
-              const Gap(32),
-              _SpeedDisplay(
-                icon: Icons.arrow_upward_rounded,
-                label: 'Отдача',
-                value: state.phase == SpeedTestPhase.upload
-                    ? formatSpeedLive(state.currentSpeed)
-                    : formatSpeed(state.uploadSpeed ?? 0),
-                unit: 'Мбит/с',
-                color: const Color(0xFFAB47BC),
-                isActive: state.phase == SpeedTestPhase.upload,
+              Expanded(
+                child: _SpeedDisplay(
+                  icon: Icons.arrow_upward_rounded,
+                  label: 'Отдача',
+                  value: state.phase == SpeedTestPhase.upload
+                      ? formatSpeedLive(state.currentSpeed)
+                      : formatSpeed(state.uploadSpeed ?? 0),
+                  unit: 'Мбит/с',
+                  color: const Color(0xFFAB47BC),
+                  isActive: state.phase == SpeedTestPhase.upload,
+                ),
               ),
             ],
           ),
