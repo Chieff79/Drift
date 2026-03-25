@@ -168,6 +168,7 @@ flutter:
     - assets/images/tray_icon_disconnected.ico
     - assets/images/tray_icon_disconnected.png
     - assets/images/world_map.png
+    - assets/images/earth_texture.jpg
     - assets/images/source/ic_launcher_border.png
 
   fonts:

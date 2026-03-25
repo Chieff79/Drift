@@ -1,7 +1,9 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 /// Country capital approximate coordinates (lat, lng) in degrees.
@@ -116,10 +118,29 @@ const _majorCities = <(double lat, double lng, String name)>[
   (-12.05, -77.04, 'Лима'),
 ];
 
-/// Interactive 3D globe with orthographic projection.
-///
-/// Supports external rotation control via [viewLatNotifier] / [viewLngNotifier].
-/// If not provided, manages its own internal state with gesture detection.
+// ═══════════════════════════════════════════════════════════════════════════
+// Shared Earth texture cache — loaded once, used by all globe instances
+// ═══════════════════════════════════════════════════════════════════════════
+ui.Image? _cachedEarthTexture;
+bool _textureLoading = false;
+
+Future<ui.Image?> _loadEarthTexture() async {
+  if (_cachedEarthTexture != null) return _cachedEarthTexture;
+  if (_textureLoading) return null;
+  _textureLoading = true;
+  try {
+    final data = await rootBundle.load('assets/images/earth_texture.jpg');
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    _cachedEarthTexture = frame.image;
+    return _cachedEarthTexture;
+  } catch (_) {
+    _textureLoading = false;
+    return null;
+  }
+}
+
+/// Interactive 3D globe with Earth texture and orthographic projection.
 class GlobeWidget extends HookWidget {
   const GlobeWidget({
     super.key,
@@ -136,10 +157,7 @@ class GlobeWidget extends HookWidget {
   final bool isConnecting;
   final String? userCountryCode;
   final String? vpnCountryCode;
-  /// Optional third point (e.g. speed test server) shown as a cyan dot with arcs.
   final String? thirdCountryCode;
-
-  /// If provided, the parent controls rotation. Otherwise, internal GestureDetector is used.
   final ValueNotifier<double>? viewLatNotifier;
   final ValueNotifier<double>? viewLngNotifier;
 
@@ -148,13 +166,23 @@ class GlobeWidget extends HookWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Internal state — used when no external notifiers provided
     final internalLat = useState(0.3);
     final internalLng = useState(0.2);
 
     final viewLat = viewLatNotifier ?? internalLat;
     final viewLng = viewLngNotifier ?? internalLng;
     final useInternalGestures = viewLatNotifier == null;
+
+    // --- Load Earth texture ---
+    final earthTexture = useState<ui.Image?>(_cachedEarthTexture);
+    useEffect(() {
+      if (earthTexture.value == null) {
+        _loadEarthTexture().then((img) {
+          if (img != null) earthTexture.value = img;
+        });
+      }
+      return null;
+    }, []);
 
     // --- Animations ---
     final pulseCtrl = useAnimationController(duration: const Duration(milliseconds: 1800));
@@ -184,7 +212,7 @@ class GlobeWidget extends HookWidget {
       return null;
     }, [isConnected]);
 
-    // Auto-center to show both points
+    // Auto-center to show points
     final autoStartLat = useRef(0.0);
     final autoStartLng = useRef(0.0);
     final autoTargetLat = useRef(0.0);
@@ -196,7 +224,6 @@ class GlobeWidget extends HookWidget {
         final v = _getLatLng(vpnCountryCode);
         final t = _getLatLng(thirdCountryCode);
         double tLat, tLng;
-        // Center view to show all points
         final allPts = [if (u != null) u, if (v != null) v, if (t != null) t];
         if (allPts.length >= 2) {
           final avgLat = allPts.map((p) => p.$1).reduce((a, b) => a + b) / allPts.length;
@@ -258,12 +285,12 @@ class GlobeWidget extends HookWidget {
                 connectingPulse: connectingCtrl.value,
                 particleProgress: particleCtrl.value,
                 isDark: isDark,
+                earthTexture: earthTexture.value,
               ),
             );
           },
         );
 
-        // If using internal gestures (speed test page), wrap in GestureDetector
         if (useInternalGestures) {
           painter = GestureDetector(
             behavior: HitTestBehavior.translucent,
@@ -288,7 +315,7 @@ class GlobeWidget extends HookWidget {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Globe CustomPainter
+// Globe CustomPainter — texture-mapped Earth
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _GlobePainter extends CustomPainter {
@@ -306,164 +333,19 @@ class _GlobePainter extends CustomPainter {
     required this.connectingPulse,
     required this.particleProgress,
     required this.isDark,
+    this.earthTexture,
   });
 
   final double viewLat, viewLng, radius;
   final (double, double)? userLatLng, vpnLatLng, thirdLatLng;
   final bool isConnected, isConnecting, isDark;
   final double pulseValue, arcProgress, connectingPulse, particleProgress;
+  final ui.Image? earthTexture;
 
   static const _userDotColor = Color(0xFF1A4A9B);
   static const _vpnDotColor = Color(0xFF30D158);
   static const _connectingColor = Color(0xFFB9A847);
   static const _thirdDotColor = Color(0xFF4FC3F7);
-
-  // ────────────────────────────────────────────────────────────────
-  // Improved continent outlines with more points for accuracy
-  // ────────────────────────────────────────────────────────────────
-  static const _continents = <List<(double, double)>>[
-    // ── Africa ──
-    [(35.8, -5.9), (36.4, -2.8), (37.1, -1.0), (36.8, 3.3), (37.3, 9.8), (36.9, 11.1),
-     (34.0, 11.5), (33.0, 12.0), (32.5, 15.0), (31.8, 24.8), (31.5, 32.0), (29.0, 33.2),
-     (27.2, 34.0), (23.5, 35.5), (18.0, 38.5), (14.0, 42.5), (12.0, 43.5), (11.5, 49.5),
-     (5.0, 48.0), (2.0, 45.5), (-1.0, 41.7), (-4.0, 40.3), (-8.0, 39.6), (-11.0, 40.4),
-     (-15.0, 40.5), (-20.0, 35.2), (-25.5, 35.0), (-30.0, 31.0), (-33.9, 25.6),
-     (-34.8, 20.0), (-34.2, 18.3), (-31.0, 17.0), (-29.0, 16.5), (-23.0, 14.5),
-     (-17.0, 12.3), (-12.5, 13.7), (-8.5, 13.0), (-5.0, 12.0), (0.0, 10.0),
-     (4.3, 8.5), (4.7, 5.5), (5.0, 2.7), (6.3, 1.3), (6.0, -2.5), (5.0, -4.0),
-     (4.5, -7.5), (5.0, -9.5), (7.5, -12.5), (8.5, -13.3), (10.0, -15.0),
-     (12.0, -16.7), (13.5, -16.5), (15.5, -16.5), (20.0, -17.0), (21.5, -17.1),
-     (24.0, -16.0), (27.5, -13.2), (30.0, -9.8), (32.0, -9.0), (33.5, -7.5),
-     (35.2, -6.0), (35.8, -5.9)],
-
-    // ── Europe (mainland) ──
-    [(36.0, -5.6), (36.7, -6.4), (37.0, -8.0), (38.7, -9.5), (40.0, -8.9), (43.2, -9.3),
-     (43.5, -8.2), (43.3, -3.0), (43.4, -1.8), (46.0, -1.2), (47.3, -2.5), (48.5, -4.8),
-     (48.8, -3.0), (49.0, -1.2), (49.4, 0.0), (50.0, 1.6), (51.0, 2.5), (53.5, 5.3),
-     (54.5, 6.5), (54.8, 8.3), (56.0, 8.1), (57.1, 8.6), (58.1, 7.0), (59.0, 5.3),
-     (61.0, 5.0), (62.5, 6.0), (64.0, 12.0), (67.5, 15.0), (69.0, 16.0), (70.0, 20.0),
-     (71.0, 25.8), (70.1, 28.0), (69.0, 29.0), (67.0, 29.0), (65.0, 29.5), (63.0, 30.0),
-     (61.0, 29.0), (60.0, 28.5), (60.0, 30.0), (59.5, 31.0), (58.0, 34.0), (56.0, 38.0),
-     (54.0, 40.0), (52.0, 41.0), (50.0, 40.0), (48.0, 38.5), (47.0, 38.5),
-     (45.5, 37.0), (44.0, 40.0), (42.0, 41.5), (41.5, 32.0), (41.2, 29.0),
-     (40.0, 26.0), (38.5, 24.0), (37.8, 23.7), (36.5, 23.0), (36.5, 28.0),
-     (36.0, 28.0), (35.5, 24.5), (36.5, 22.5), (38.0, 21.5), (39.5, 20.0),
-     (40.5, 19.5), (42.0, 18.5), (44.0, 15.5), (45.5, 13.7), (44.0, 12.5),
-     (43.5, 10.2), (44.2, 8.5), (43.8, 7.5), (43.0, 5.5), (43.0, 3.3),
-     (42.3, 3.2), (41.5, 2.0), (40.5, 0.5), (38.0, -0.5), (37.5, -1.5),
-     (36.7, -2.3), (36.0, -5.6)],
-
-    // ── Great Britain ──
-    [(50.0, -5.5), (50.8, -1.0), (51.5, 1.3), (52.5, 1.7), (53.0, 0.0),
-     (53.5, -0.5), (54.5, -1.2), (55.0, -1.6), (56.0, -3.0), (57.5, -5.5),
-     (58.5, -5.0), (58.6, -3.0), (57.5, -2.0), (57.0, -2.0), (56.5, -3.0),
-     (55.8, -5.4), (55.0, -4.8), (54.0, -5.0), (53.2, -4.5), (52.5, -4.0),
-     (51.5, -5.0), (50.0, -5.5)],
-
-    // ── Asia (mainland) ──
-    [(42.0, 41.5), (44.0, 40.0), (45.5, 37.0), (47.0, 38.5), (48.0, 38.5),
-     (50.0, 40.0), (52.0, 41.0), (54.0, 40.0), (56.0, 38.0), (58.0, 34.0),
-     (59.5, 31.0), (60.0, 30.0), (60.0, 28.5), (61.0, 29.0), (63.0, 30.0),
-     (65.0, 29.5), (67.0, 29.0), (69.0, 29.0), (70.0, 35.0), (70.0, 45.0),
-     (69.0, 55.0), (68.0, 65.0), (68.5, 75.0), (71.0, 85.0), (73.0, 95.0),
-     (73.5, 105.0), (72.0, 115.0), (71.5, 128.0), (71.0, 135.0), (68.0, 140.0),
-     (67.0, 153.0), (64.5, 163.0), (62.0, 170.0), (61.0, 165.0), (59.5, 163.0),
-     (56.0, 155.0), (54.5, 143.0), (53.0, 142.0), (51.0, 140.5), (49.0, 138.0),
-     (48.5, 135.0), (46.5, 135.0), (44.0, 132.0), (43.0, 131.5), (42.5, 130.5),
-     (40.0, 124.5), (38.5, 121.5), (35.5, 119.5), (30.5, 122.0), (28.0, 121.5),
-     (25.0, 119.5), (23.0, 117.0), (22.0, 113.5), (21.5, 110.5), (21.5, 108.0),
-     (18.5, 106.0), (16.0, 108.5), (12.0, 109.3), (8.5, 104.5), (1.0, 104.5),
-     (1.3, 103.5), (4.0, 101.0), (6.0, 100.0), (7.0, 98.5), (10.0, 98.0),
-     (14.0, 98.0), (16.5, 97.0), (20.0, 93.0), (22.0, 89.0), (22.0, 87.0),
-     (24.0, 89.0), (26.0, 89.0), (28.0, 87.0), (28.0, 84.0), (27.0, 82.0),
-     (28.5, 77.0), (24.5, 69.5), (23.5, 68.5), (24.0, 67.0), (25.0, 62.0),
-     (25.5, 60.0), (22.0, 59.5), (22.5, 56.0), (23.5, 55.0), (24.5, 51.5),
-     (26.5, 50.5), (27.0, 49.5), (29.5, 48.5), (30.5, 47.5), (31.0, 47.0),
-     (33.0, 44.5), (36.0, 43.0), (37.5, 42.5), (40.0, 44.0), (42.0, 41.5)],
-
-    // ── Japan ──
-    [(31.0, 131.0), (33.0, 131.5), (33.5, 133.0), (34.3, 135.0), (35.0, 136.5),
-     (35.5, 137.0), (36.5, 137.5), (37.0, 138.0), (38.5, 139.5), (39.5, 140.0),
-     (40.0, 140.0), (41.0, 140.5), (41.5, 141.0), (43.0, 145.0), (44.0, 145.5),
-     (45.5, 142.0), (43.5, 141.5), (42.0, 141.0), (41.0, 139.5), (39.5, 138.5),
-     (37.0, 136.5), (35.5, 135.5), (34.5, 134.0), (33.0, 130.5), (31.0, 131.0)],
-
-    // ── North America ──
-    [(68.0, -168.0), (71.0, -157.0), (71.5, -140.0), (70.0, -130.0), (69.5, -120.0),
-     (72.0, -115.0), (72.0, -100.0), (70.0, -92.0), (68.0, -87.0), (65.0, -85.0),
-     (63.0, -82.0), (60.0, -78.0), (58.0, -77.0), (56.0, -80.0), (52.0, -80.0),
-     (50.0, -85.0), (48.5, -89.0), (47.0, -88.0), (46.0, -84.5), (44.5, -82.5),
-     (43.0, -82.5), (42.0, -83.0), (41.5, -82.5), (42.5, -79.0), (43.5, -76.5),
-     (44.5, -75.5), (44.0, -72.0), (43.0, -70.5), (42.0, -70.0), (41.0, -72.0),
-     (40.5, -74.0), (38.5, -75.0), (37.0, -76.0), (35.0, -75.5), (33.5, -78.0),
-     (32.0, -80.5), (30.5, -81.5), (29.0, -81.0), (27.5, -80.5), (25.5, -80.0),
-     (25.0, -80.5), (24.5, -81.8), (25.5, -81.5), (26.5, -82.0), (28.5, -83.0),
-     (29.0, -84.5), (29.5, -85.5), (30.0, -86.0), (30.0, -88.5), (29.0, -89.5),
-     (29.5, -91.0), (29.0, -93.5), (27.8, -97.0), (25.8, -97.2),
-     (22.5, -98.0), (20.0, -97.0), (19.0, -96.0), (18.5, -95.0), (18.0, -93.0),
-     (18.5, -91.0), (20.5, -87.0), (21.5, -87.5), (21.0, -90.0), (19.5, -90.5),
-     (18.0, -89.0), (16.5, -88.5), (15.5, -84.0), (14.0, -83.5), (13.0, -84.0),
-     (11.0, -83.5), (10.0, -84.0), (9.0, -84.0), (8.5, -82.5), (8.0, -77.5),
-     (7.0, -77.8), (8.0, -77.0), (9.5, -76.0), (10.5, -75.5), (11.0, -74.5),
-     (12.0, -72.0), (12.0, -70.0), (11.0, -65.0), (10.5, -61.0),
-     (18.0, -63.0), (18.5, -66.0), (20.0, -73.0), (23.0, -76.0),
-     (25.0, -77.5), (26.0, -79.0), (30.5, -81.0), (32.0, -80.0),
-     (38.5, -75.5), (40.5, -74.0), (42.0, -70.0), (43.5, -66.0), (45.0, -62.0),
-     (46.5, -61.0), (47.0, -65.0), (49.0, -67.0), (47.5, -69.0), (47.0, -70.5),
-     (49.0, -66.5), (49.5, -64.0), (47.8, -62.0), (46.0, -60.0), (45.5, -61.5),
-     (44.5, -63.5), (44.0, -66.0), (50.0, -57.0), (51.5, -55.5), (53.5, -56.0),
-     (57.0, -62.0), (60.5, -64.5), (64.0, -68.0), (66.0, -62.0), (70.0, -55.0),
-     (73.0, -58.0), (75.0, -65.0), (78.0, -72.0), (80.0, -85.0), (77.0, -95.0),
-     (75.0, -95.0), (73.0, -95.0), (70.0, -100.0), (68.0, -107.0), (70.0, -115.0),
-     (72.0, -125.0), (71.0, -137.0), (69.5, -140.5), (68.5, -149.0), (66.0, -164.0),
-     (68.0, -168.0)],
-
-    // ── South America ──
-    [(12.0, -72.0), (11.0, -74.5), (10.5, -75.5), (9.0, -77.0), (7.0, -77.8),
-     (3.0, -78.0), (1.0, -80.0), (-1.0, -80.0), (-3.5, -80.5), (-5.0, -81.0),
-     (-6.5, -81.0), (-10.0, -78.0), (-15.0, -75.5), (-17.0, -72.5), (-18.0, -70.0),
-     (-22.0, -70.0), (-23.5, -70.5), (-27.0, -70.5), (-30.0, -71.5), (-33.0, -72.0),
-     (-38.0, -73.5), (-41.0, -73.5), (-43.5, -73.5), (-46.0, -75.5), (-48.0, -75.5),
-     (-52.0, -72.0), (-53.0, -70.5), (-54.0, -69.0), (-55.0, -67.0), (-55.5, -65.5),
-     (-54.5, -64.0), (-52.0, -68.5), (-50.0, -66.0), (-45.0, -65.5), (-42.0, -63.0),
-     (-38.5, -58.5), (-37.0, -56.5), (-35.0, -54.5), (-33.0, -53.0), (-28.0, -48.5),
-     (-23.0, -43.0), (-20.0, -40.0), (-15.0, -39.0), (-12.5, -38.0), (-9.0, -35.0),
-     (-5.5, -35.0), (-2.5, -42.0), (-1.5, -48.5), (0.0, -50.0), (2.0, -53.0),
-     (5.0, -58.0), (6.5, -60.0), (8.0, -62.0), (10.5, -61.0), (11.0, -65.0),
-     (12.0, -70.0), (12.0, -72.0)],
-
-    // ── Australia ──
-    [(-12.5, 130.5), (-12.5, 132.0), (-14.5, 135.5), (-14.0, 137.5), (-12.0, 136.0),
-     (-11.0, 132.0), (-12.0, 130.0), (-14.5, 127.0), (-16.0, 124.0),
-     (-18.0, 122.0), (-20.0, 119.0), (-22.0, 114.0), (-25.0, 113.5),
-     (-28.0, 114.0), (-31.0, 115.0), (-34.0, 115.5), (-35.0, 117.5), (-35.0, 118.5),
-     (-34.5, 120.0), (-33.5, 124.0), (-33.0, 130.0), (-34.0, 136.0), (-35.5, 137.5),
-     (-36.0, 138.5), (-37.0, 140.0), (-38.0, 142.0), (-38.5, 146.0), (-37.5, 149.5),
-     (-34.0, 151.5), (-30.0, 153.0), (-27.0, 153.5), (-24.5, 152.0), (-22.0, 150.0),
-     (-19.5, 147.5), (-17.0, 146.0), (-16.0, 145.5), (-14.5, 144.0), (-13.0, 143.5),
-     (-12.5, 141.5), (-12.5, 140.0), (-11.0, 137.0), (-12.5, 136.0),
-     (-14.0, 137.0), (-14.5, 135.5), (-12.5, 132.0), (-12.5, 130.5)],
-
-    // ── India (subcontinent) ──
-    [(28.5, 77.0), (27.0, 75.0), (24.5, 69.0), (23.5, 68.5), (21.0, 72.5),
-     (19.0, 73.0), (15.5, 74.0), (12.0, 75.0), (8.0, 77.0), (8.5, 80.0),
-     (10.0, 80.0), (13.0, 80.5), (15.5, 80.0), (17.5, 83.5), (19.5, 85.0),
-     (21.5, 87.0), (22.0, 89.0), (24.0, 89.0), (26.0, 89.0), (28.0, 87.0),
-     (28.5, 84.0), (27.0, 82.0), (28.5, 77.0)],
-
-    // ── Madagascar ──
-    [(-12.0, 49.3), (-15.5, 50.5), (-19.0, 49.0), (-22.0, 47.5),
-     (-24.0, 47.0), (-25.5, 45.5), (-24.0, 44.0), (-21.5, 43.5),
-     (-18.0, 44.0), (-15.5, 47.0), (-12.5, 49.0), (-12.0, 49.3)],
-
-    // ── New Zealand (both islands) ──
-    [(-34.5, 173.0), (-36.5, 175.0), (-38.0, 178.0), (-39.0, 178.0),
-     (-41.0, 176.5), (-41.5, 175.0), (-40.5, 173.0), (-39.0, 174.0),
-     (-38.0, 175.5), (-36.0, 174.5), (-34.5, 173.0)],
-    [(-41.5, 172.0), (-42.5, 171.0), (-44.0, 169.0), (-46.0, 167.0),
-     (-47.0, 168.5), (-46.5, 170.0), (-44.5, 171.5), (-43.0, 172.5),
-     (-41.5, 174.5), (-41.5, 172.0)],
-  ];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -471,13 +353,15 @@ class _GlobePainter extends CustomPainter {
     final cy = size.height / 2;
     final center = Offset(cx, cy);
 
-    // Clip to globe
+    // Clip to globe circle
     canvas.save();
     canvas.clipPath(Path()..addOval(Rect.fromCircle(center: center, radius: radius)));
 
-    _drawGlobeSurface(canvas, center);
-    _drawGridLines(canvas, center);
-    _drawContinents(canvas, center);
+    if (earthTexture != null) {
+      _drawTexturedGlobe(canvas, center);
+    } else {
+      _drawFallbackSurface(canvas, center);
+    }
     _drawCityDots(canvas, center);
     _drawLighting(canvas, center);
 
@@ -527,143 +411,141 @@ class _GlobePainter extends CustomPainter {
     return (radius * cosLat * sin(dLng), -radius * (cosLat0 * sinLat - sinLat0 * cosLat * cosDLng));
   }
 
-  // Continent fill colors: Africa, Europe, GB, Asia, Japan, N.America, S.America, Australia, India, Madagascar, NZ, NZ
-  static const _continentColors = <Color>[
-    Color(0xFFD4A86A), // Africa — sandy
-    Color(0xFF5CA04E), // Europe — green
-    Color(0xFF4E9643), // Great Britain — green
-    Color(0xFF7CB668), // Asia — light green
-    Color(0xFF5CA04E), // Japan — green
-    Color(0xFF6AAF5C), // North America — green
-    Color(0xFF3D8B35), // South America — dark green (tropical)
-    Color(0xFFC4884A), // Australia — orange/brown (desert)
-    Color(0xFF8AAD5A), // India — yellow-green
-    Color(0xFF4E9643), // Madagascar — green
-    Color(0xFF5CA04E), // New Zealand North — green
-    Color(0xFF5CA04E), // New Zealand South — green
-  ];
+  // ── Texture-mapped globe using drawVertices ──────────────────────────────
 
-  // Ocean colors
-  static const _oceanDeep = Color(0xFF0B3D6B);
-  static const _oceanLight = Color(0xFF1B6AAF);
+  void _drawTexturedGlobe(Canvas canvas, Offset center) {
+    final img = earthTexture!;
+    final imgW = img.width.toDouble();
+    final imgH = img.height.toDouble();
 
-  void _drawGlobeSurface(Canvas canvas, Offset center) {
-    // Solid blue ocean with 3D shading — light from upper-left
+    const latStep = 3.0;
+    const lngStep = 3.0;
+    const latSteps = 60; // 180 / 3
+    const lngSteps = 120; // 360 / 3
+    const gridSize = (latSteps + 1) * (lngSteps + 1);
+
+    final positions = Float32List(gridSize * 2);
+    final texCoords = Float32List(gridSize * 2);
+    final visible = Uint8List(gridSize);
+    final indexMap = Int32List(gridSize);
+    var vertexCount = 0;
+
+    for (int j = 0; j <= latSteps; j++) {
+      final lat = 90.0 - j * latStep;
+      for (int i = 0; i <= lngSteps; i++) {
+        final gridIdx = j * (lngSteps + 1) + i;
+        final lng = -180.0 + i * lngStep;
+        final proj = _project(lat, lng);
+        if (proj != null) {
+          visible[gridIdx] = 1;
+          indexMap[gridIdx] = vertexCount;
+          final vi = vertexCount * 2;
+          positions[vi] = center.dx + proj.$1;
+          positions[vi + 1] = center.dy + proj.$2;
+          texCoords[vi] = (lng + 180.0) / 360.0 * imgW;
+          texCoords[vi + 1] = (90.0 - lat) / 180.0 * imgH;
+          vertexCount++;
+        } else {
+          visible[gridIdx] = 0;
+          indexMap[gridIdx] = -1;
+        }
+      }
+    }
+
+    if (vertexCount < 3) return;
+
+    // Build triangle indices
+    final indices = <int>[];
+    for (int j = 0; j < latSteps; j++) {
+      for (int i = 0; i < lngSteps; i++) {
+        final gi0 = j * (lngSteps + 1) + i;
+        final gi1 = gi0 + 1;
+        final gi2 = gi0 + (lngSteps + 1);
+        final gi3 = gi2 + 1;
+
+        if (visible[gi0] == 1 && visible[gi1] == 1 && visible[gi2] == 1) {
+          indices.addAll([indexMap[gi0], indexMap[gi1], indexMap[gi2]]);
+        }
+        if (visible[gi1] == 1 && visible[gi3] == 1 && visible[gi2] == 1) {
+          indices.addAll([indexMap[gi1], indexMap[gi3], indexMap[gi2]]);
+        }
+      }
+    }
+
+    if (indices.isEmpty) return;
+
+    // Trim position/texCoord arrays to actual vertex count
+    final trimPos = Float32List.sublistView(positions, 0, vertexCount * 2);
+    final trimTex = Float32List.sublistView(texCoords, 0, vertexCount * 2);
+
+    final shader = ui.ImageShader(
+      img,
+      TileMode.clamp,
+      TileMode.clamp,
+      Matrix4.identity().storage,
+    );
+
+    final vertices = ui.Vertices.raw(
+      VertexMode.triangles,
+      trimPos,
+      textureCoordinates: trimTex,
+      indices: Uint16List.fromList(indices),
+    );
+
+    canvas.drawVertices(vertices, BlendMode.srcOver, Paint()..shader = shader);
+  }
+
+  // ── Fallback: simple blue globe while texture loads ──────────────────────
+
+  void _drawFallbackSurface(Canvas canvas, Offset center) {
     final lightOffset = Offset(center.dx - radius * 0.35, center.dy - radius * 0.35);
     canvas.drawCircle(center, radius, Paint()
       ..shader = ui.Gradient.radial(lightOffset, radius * 2.2,
-        [_oceanLight, _oceanDeep],
+        [const Color(0xFF1B6AAF), const Color(0xFF0B3D6B)],
         [0.0, 1.0]));
   }
 
-  void _drawAtmosphere(Canvas canvas, Offset center) {
-    // Glow around globe
-    canvas.drawCircle(center, radius * 1.08, Paint()
-      ..shader = ui.Gradient.radial(center, radius * 1.08,
-        [Colors.transparent, Colors.transparent,
-         const Color(0xFF4A9FE7).withValues(alpha: 0.12),
-         const Color(0xFF4A9FE7).withValues(alpha: 0.04), Colors.transparent],
-        [0.0, 0.88, 0.95, 1.0, 1.0]));
-    // Rim
-    canvas.drawCircle(center, radius, Paint()
-      ..color = const Color(0xFF5AAFE7).withValues(alpha: 0.25)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5);
-  }
+  // ── 3D Lighting overlay ─────────────────────────────────────────────────
 
   void _drawLighting(Canvas canvas, Offset center) {
     // Specular highlight — top-left
     final hlCenter = Offset(center.dx - radius * 0.3, center.dy - radius * 0.35);
     canvas.drawCircle(center, radius, Paint()
       ..shader = ui.Gradient.radial(hlCenter, radius * 0.8,
-        [Colors.white.withValues(alpha: 0.18), Colors.white.withValues(alpha: 0.03), Colors.transparent],
+        [Colors.white.withValues(alpha: 0.12), Colors.white.withValues(alpha: 0.02), Colors.transparent],
         [0.0, 0.4, 1.0]));
-    // Shadow — bottom-right
-    final shCenter = Offset(center.dx + radius * 0.5, center.dy + radius * 0.5);
-    canvas.drawCircle(center, radius, Paint()
-      ..shader = ui.Gradient.radial(shCenter, radius * 0.6,
-        [Colors.black.withValues(alpha: 0.2), Colors.transparent],
-        [0.0, 1.0]));
-    // Edge darkening
+    // Shadow — bottom-right edge darkening
     canvas.drawCircle(center, radius, Paint()
       ..shader = ui.Gradient.radial(center, radius,
-        [Colors.transparent, Colors.transparent, Colors.black.withValues(alpha: 0.15)],
-        [0.0, 0.75, 1.0]));
+        [Colors.transparent, Colors.transparent, Colors.black.withValues(alpha: 0.25)],
+        [0.0, 0.7, 1.0]));
   }
 
-  void _drawGridLines(Canvas canvas, Offset center) {
-    final cx = center.dx;
-    final cy = center.dy;
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+  // ── Atmosphere ──────────────────────────────────────────────────────────
+
+  void _drawAtmosphere(Canvas canvas, Offset center) {
+    canvas.drawCircle(center, radius * 1.08, Paint()
+      ..shader = ui.Gradient.radial(center, radius * 1.08,
+        [Colors.transparent, Colors.transparent,
+         const Color(0xFF4A9FE7).withValues(alpha: 0.15),
+         const Color(0xFF4A9FE7).withValues(alpha: 0.05), Colors.transparent],
+        [0.0, 0.88, 0.95, 1.0, 1.0]));
+    canvas.drawCircle(center, radius, Paint()
+      ..color = const Color(0xFF5AAFE7).withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.4;
-
-    for (double lngDeg = -180; lngDeg < 180; lngDeg += 30) {
-      final path = Path();
-      var started = false;
-      for (double latDeg = -90; latDeg <= 90; latDeg += 3) {
-        final p = _project(latDeg, lngDeg);
-        if (p != null) {
-          if (!started) { path.moveTo(cx + p.$1, cy + p.$2); started = true; }
-          else { path.lineTo(cx + p.$1, cy + p.$2); }
-        } else { started = false; }
-      }
-      canvas.drawPath(path, paint);
-    }
-    for (double latDeg = -60; latDeg <= 60; latDeg += 30) {
-      final path = Path();
-      var started = false;
-      for (double lngDeg = -180; lngDeg <= 180; lngDeg += 3) {
-        final p = _project(latDeg, lngDeg);
-        if (p != null) {
-          if (!started) { path.moveTo(cx + p.$1, cy + p.$2); started = true; }
-          else { path.lineTo(cx + p.$1, cy + p.$2); }
-        } else { started = false; }
-      }
-      canvas.drawPath(path, paint);
-    }
+      ..strokeWidth = 1.5);
   }
 
-  void _drawContinents(Canvas canvas, Offset center) {
-    final cx = center.dx;
-    final cy = center.dy;
-    final borderPaint = Paint()
-      ..color = const Color(0xFF2A5020).withValues(alpha: 0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8
-      ..strokeJoin = StrokeJoin.round;
-
-    for (int i = 0; i < _continents.length; i++) {
-      final outline = _continents[i];
-      final baseColor = i < _continentColors.length ? _continentColors[i] : const Color(0xFF5CA04E);
-      final path = Path();
-      var started = false;
-      for (final pt in outline) {
-        final p = _project(pt.$1, pt.$2);
-        if (p != null) {
-          if (!started) { path.moveTo(cx + p.$1, cy + p.$2); started = true; }
-          else { path.lineTo(cx + p.$1, cy + p.$2); }
-        } else { started = false; }
-      }
-      path.close();
-      canvas.drawPath(path, Paint()..color = baseColor..style = PaintingStyle.fill);
-      // Subtle relief: lighter highlights
-      canvas.drawPath(path, Paint()
-        ..color = Colors.white.withValues(alpha: 0.08)
-        ..style = PaintingStyle.fill);
-      canvas.drawPath(path, borderPaint);
-    }
-  }
+  // ── City dots ───────────────────────────────────────────────────────────
 
   void _drawCityDots(Canvas canvas, Offset center) {
     final cx = center.dx;
     final cy = center.dy;
     final dotPaint = Paint()
-      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.7)
+      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.75)
       ..style = PaintingStyle.fill;
     final glowPaint = Paint()
-      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.25)
+      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
 
     for (final city in _majorCities) {
@@ -675,6 +557,8 @@ class _GlobePainter extends CustomPainter {
       }
     }
   }
+
+  // ── Connection dots ─────────────────────────────────────────────────────
 
   void _drawUserDot(Canvas canvas, Offset c) {
     canvas.drawCircle(c, 14, Paint()..color = _userDotColor.withValues(alpha: 0.25)
@@ -714,6 +598,8 @@ class _GlobePainter extends CustomPainter {
     canvas.drawCircle(c, 1.8, Paint()..color = Colors.white.withValues(alpha: 0.9));
   }
 
+  // ── Connection arc ──────────────────────────────────────────────────────
+
   void _drawGreatCircleArc(
     Canvas canvas,
     Offset center,
@@ -736,7 +622,7 @@ class _GlobePainter extends CustomPainter {
 
     const segments = 64;
     final points = <Offset>[];
-    final visible = <bool>[];
+    final visibleFlags = <bool>[];
 
     for (int i = 0; i <= segments; i++) {
       final t = i / segments;
@@ -752,25 +638,25 @@ class _GlobePainter extends CustomPainter {
       final proj = _project(lat, lng);
       if (proj != null) {
         points.add(Offset(cx + proj.$1, cy + proj.$2));
-        visible.add(true);
+        visibleFlags.add(true);
       } else {
         points.add(Offset.zero);
-        visible.add(false);
+        visibleFlags.add(false);
       }
     }
 
     final total = (arcProgress * segments).round();
-    final arcPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 2.0..strokeCap = StrokeCap.round;
-    final glowPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 6.0..strokeCap = StrokeCap.round
+    final arcPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5..strokeCap = StrokeCap.round;
+    final glowPaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 7.0..strokeCap = StrokeCap.round
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
     for (int i = 0; i < total; i++) {
-      if (!visible[i] || !visible[i + 1]) continue;
+      if (!visibleFlags[i] || !visibleFlags[i + 1]) continue;
       final t = i / segments;
-      final c = Color.lerp(fromColor.withValues(alpha: 0.6), toColor.withValues(alpha: 0.6), t)!;
+      final c = Color.lerp(fromColor.withValues(alpha: 0.7), toColor.withValues(alpha: 0.7), t)!;
       arcPaint.color = c;
       canvas.drawLine(points[i], points[i + 1], arcPaint);
-      glowPaint.color = c.withValues(alpha: 0.1);
+      glowPaint.color = c.withValues(alpha: 0.15);
       canvas.drawLine(points[i], points[i + 1], glowPaint);
     }
 
@@ -778,10 +664,10 @@ class _GlobePainter extends CustomPainter {
       for (int p = 0; p < 3; p++) {
         final off = (particleProgress + p / 3.0) % 1.0;
         final idx = (off * segments).round().clamp(0, segments);
-        if (idx < points.length && visible[idx]) {
-          canvas.drawCircle(points[idx], 4, Paint()..color = toColor.withValues(alpha: 0.3)
+        if (idx < points.length && visibleFlags[idx]) {
+          canvas.drawCircle(points[idx], 4, Paint()..color = toColor.withValues(alpha: 0.4)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
-          canvas.drawCircle(points[idx], 2, Paint()..color = Colors.white.withValues(alpha: 0.9));
+          canvas.drawCircle(points[idx], 2, Paint()..color = Colors.white.withValues(alpha: 0.95));
         }
       }
     }
@@ -793,5 +679,6 @@ class _GlobePainter extends CustomPainter {
       o.pulseValue != pulseValue || o.arcProgress != arcProgress ||
       o.connectingPulse != connectingPulse || o.particleProgress != particleProgress ||
       o.isConnected != isConnected || o.isConnecting != isConnecting ||
-      o.userLatLng != userLatLng || o.vpnLatLng != vpnLatLng || o.thirdLatLng != thirdLatLng;
+      o.userLatLng != userLatLng || o.vpnLatLng != vpnLatLng || o.thirdLatLng != thirdLatLng ||
+      o.earthTexture != earthTexture;
 }
