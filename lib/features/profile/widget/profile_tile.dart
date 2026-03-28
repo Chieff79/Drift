@@ -74,13 +74,6 @@ class ProfileTile extends HookConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (showActionButton) ...[
-                SizedBox(
-                  width: 48,
-                  child: Semantics(sortKey: const OrdinalSortKey(1), child: ProfileActionButton(profile, !isMain)),
-                ),
-                if (profile.active) VerticalDivider(width: 1, color: theme.colorScheme.outline) else const Gap(1),
-              ],
               Expanded(
                 child: Semantics(
                   button: true,
@@ -91,7 +84,7 @@ class ProfileTile extends HookConsumerWidget {
                   label: isMain ? t.pages.profiles.viewAllProfiles : null,
                   child: InkWell(
                     borderRadius: showActionButton
-                        ? ProfileTileConst.endBorderRadius(Directionality.of(context))
+                        ? ProfileTileConst.startBorderRadius(Directionality.of(context))
                         : ProfileTileConst.cardBorderRadius,
                     onTap: () {
                       if (isMain) {
@@ -171,6 +164,13 @@ class ProfileTile extends HookConsumerWidget {
                   ),
                 ),
               ),
+              if (showActionButton) ...[
+                if (profile.active) VerticalDivider(width: 1, color: theme.colorScheme.outline) else const Gap(1),
+                SizedBox(
+                  width: 48,
+                  child: Semantics(sortKey: const OrdinalSortKey(1), child: ProfileActionButton(profile, !isMain)),
+                ),
+              ],
             ],
           ),
         ),
@@ -196,7 +196,7 @@ class ProfileActionButton extends HookConsumerWidget {
         child: Tooltip(
           message: t.pages.profiles.update,
           child: InkWell(
-            borderRadius: ProfileTileConst.startBorderRadius(Directionality.of(context)),
+            borderRadius: ProfileTileConst.endBorderRadius(Directionality.of(context)),
             onTap: () {
               if (ref.read(updateProfileNotifierProvider(profile.id)).isLoading) {
                 return;
@@ -216,7 +216,7 @@ class ProfileActionButton extends HookConsumerWidget {
         child: Tooltip(
           message: MaterialLocalizations.of(context).showMenuTooltip,
           child: InkWell(
-            borderRadius: ProfileTileConst.startBorderRadius(Directionality.of(context)),
+            borderRadius: ProfileTileConst.endBorderRadius(Directionality.of(context)),
             onTap: toggleVisibility,
             child: Icon(AdaptiveIcon(context).more),
           ),

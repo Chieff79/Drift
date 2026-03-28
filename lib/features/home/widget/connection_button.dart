@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
@@ -29,6 +32,26 @@ class ConnectionButton extends HookConsumerWidget {
     final delay = activeProxy.valueOrNull?.urlTestDelay ?? 0;
     final requiresReconnect = ref.watch(configOptionNotifierProvider).valueOrNull;
 
+    final isConnecting = connectionStatus.valueOrNull is Connecting ||
+        (connectionStatus.valueOrNull is Connected && (delay <= 0 || delay >= 65000));
+
+    final elapsedSeconds = useState(0);
+    final timerRef = useRef<Timer?>(null);
+
+    useEffect(() {
+      if (isConnecting) {
+        elapsedSeconds.value = 0;
+        timerRef.value = Timer.periodic(const Duration(seconds: 1), (_) {
+          elapsedSeconds.value++;
+        });
+      } else {
+        timerRef.value?.cancel();
+        timerRef.value = null;
+        elapsedSeconds.value = 0;
+      }
+      return () => timerRef.value?.cancel();
+    }, [isConnecting]);
+
     final buttonColor = switch (connectionStatus) {
       AsyncData(value: Connected()) when requiresReconnect == true => _reconnectColor,
       AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => _connectingColor,
@@ -42,9 +65,12 @@ class ConnectionButton extends HookConsumerWidget {
 
     final isConnected = connectionStatus.valueOrNull == const Connected();
 
+    final connectingLabel = '${t.connection.connecting} ${elapsedSeconds.value}с';
+
     final label = switch (connectionStatus) {
       AsyncData(value: Connected()) when requiresReconnect == true => t.connection.reconnect,
-      AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => t.connection.connecting,
+      AsyncData(value: Connected()) when delay <= 0 || delay >= 65000 => connectingLabel,
+      AsyncData(value: Connecting()) => connectingLabel,
       AsyncData(value: final status) => status.present(t),
       _ => "",
     };

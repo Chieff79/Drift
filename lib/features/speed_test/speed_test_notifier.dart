@@ -125,7 +125,10 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
   }
 
   /// Start the speed test. Traffic goes THROUGH the VPN.
-  Future<void> startTest() async {
+  /// [vpnCountryCode] — country code of the VPN exit server (e.g. "RU", "NL")
+  /// to pick the closest speed test server.
+  /// [isVpnActive] — whether VPN is currently connected.
+  Future<void> startTest({String? vpnCountryCode, bool isVpnActive = false}) async {
     if (state.phase != SpeedTestPhase.idle && state.phase != SpeedTestPhase.complete) {
       return;
     }
@@ -145,10 +148,18 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
       final svc = _service;
       if (svc == null) return;
 
+      // When VPN is off, prefer user's own country for accurate local speed
+      String? preferredCountry = vpnCountryCode;
+      if (!isVpnActive) {
+        final userLoc = await userLocationFuture;
+        preferredCountry = userLoc['countryCode'];
+      }
+
       final server = await svc.selectBestServer(
         onStatus: (msg) {
           if (!_disposed) state = state.copyWith(statusMessage: msg);
         },
+        preferredCountryCode: preferredCountry,
       );
 
       if (server == null) {

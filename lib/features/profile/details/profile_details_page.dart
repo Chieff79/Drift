@@ -67,12 +67,8 @@ class ProfileDetailsPage extends HookConsumerWidget with PresLogger {
                         ? null
                         : () async {
                             if (formKey.currentState!.validate()) {
-                              await ref.read(provider.notifier).save().then((success) {
-                                ref
-                                    .read(inAppNotificationControllerProvider)
-                                    .showSuccessToast(t.pages.profiles.msg.save.success);
-                                if (success && context.mounted) context.pop();
-                              });
+                              final success = await ref.read(provider.notifier).save();
+                              if (success && context.mounted) context.pop();
                             }
                           },
                     icon: const Icon(Icons.check),
@@ -81,8 +77,11 @@ class ProfileDetailsPage extends HookConsumerWidget with PresLogger {
                   const Gap(8),
                 ],
               ),
-              body: ListView(
+              body: Column(
                 children: [
+                  Expanded(
+                    child: ListView(
+                      children: [
                   Form(
                     key: formKey,
                     child: Column(
@@ -248,7 +247,7 @@ class ProfileDetailsPage extends HookConsumerWidget with PresLogger {
                     ),
                   ),
                   SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.7,
+                    height: MediaQuery.of(context).size.height * 0.5,
                     child: isJson(data.configContent)
                         ? JsonEditor(
                             expandedObjects: const ["outbounds", "endpoints"],
@@ -277,6 +276,9 @@ class ProfileDetailsPage extends HookConsumerWidget with PresLogger {
                               contentPadding: EdgeInsets.only(left: 5, top: 8, bottom: 8),
                             ),
                           ),
+                  ),
+                ],
+              ),
                   ),
                 ],
               ),

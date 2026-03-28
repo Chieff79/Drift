@@ -28,15 +28,36 @@ class ProfilesPage extends HookConsumerWidget {
       appBar: AppBar(
         title: Text(t.pages.profiles.title),
         actions: [
-          IconButton(
-            onPressed: () => ref.read(foregroundProfilesUpdateNotifierProvider.notifier).trigger(),
-            icon: const Icon(Icons.update_rounded),
-            tooltip: t.pages.profiles.updateSubscriptions,
-          ),
-          IconButton(
-            onPressed: () => ref.read(dialogNotifierProvider.notifier).showSortProfiles(),
-            icon: const Icon(Icons.sort_rounded),
-            tooltip: t.common.sort,
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'update':
+                  ref.read(foregroundProfilesUpdateNotifierProvider.notifier).trigger();
+                case 'sort':
+                  ref.read(dialogNotifierProvider.notifier).showSortProfiles();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'update',
+                child: ListTile(
+                  leading: const Icon(Icons.update_rounded),
+                  title: Text(t.pages.profiles.updateSubscriptions),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'sort',
+                child: ListTile(
+                  leading: const Icon(Icons.sort_rounded),
+                  title: Text(t.common.sort),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
           const Gap(8),
         ],

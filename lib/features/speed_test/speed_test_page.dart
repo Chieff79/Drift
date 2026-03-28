@@ -91,7 +91,7 @@ class SpeedTestPage extends HookConsumerWidget {
               state: state,
               isRunning: isRunning,
               hasResults: hasResults,
-              onStart: () => ref.read(speedTestNotifierProvider.notifier).startTest(),
+              onStart: () => ref.read(speedTestNotifierProvider.notifier).startTest(vpnCountryCode: vpnCountryCode, isVpnActive: isVpnActive),
               onCancel: () => ref.read(speedTestNotifierProvider.notifier).cancelTest(),
             ),
           ),

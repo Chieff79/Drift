@@ -26,6 +26,29 @@ class TlsTricksPage extends HookConsumerWidget {
       appBar: AppBar(title: const Text('Обход блокировок')),
       body: ListView(
         children: [
+          if (ref.watch(ConfigOptions.enableTlsFragment))
+            Container(
+              margin: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '⚠️ Фрагментация несовместима с VLESS+Reality. '
+                      'Включайте только если прямое подключение заблокировано.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.tlsTricks.enable),
             subtitle: const Text('Разбивать TLS-пакеты для обхода DPI'),

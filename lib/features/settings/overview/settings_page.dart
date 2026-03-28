@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
+import 'package:hiddify/features/settings/data/config_option_repository.dart';
+import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hiddify/features/settings/notifier/config_option/config_option_notifier.dart';
 import 'package:hiddify/features/settings/notifier/reset_tunnel/reset_tunnel_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -175,6 +177,26 @@ class SettingsPage extends HookConsumerWidget {
             subtitle: 'Режим работы, порты',
             namedLocation: context.namedLocation('inboundOptions'),
           ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          SwitchListTile.adaptive(
+            secondary: const Icon(Icons.shield_rounded),
+            title: const Text('Kill Switch'),
+            subtitle: const Text('Блокировать трафик если VPN отключён'),
+            value: ref.watch(ConfigOptions.strictRoute),
+            onChanged: (value) async {
+              await ref.read(ConfigOptions.strictRoute.notifier).update(value);
+            },
+          ),
+          SwitchListTile.adaptive(
+            secondary: const Icon(Icons.cloud_rounded),
+            title: const Text('WARP'),
+            subtitle: Text(ref.watch(ConfigOptions.warpDetourMode).presentExplain(t)),
+            value: ref.watch(ConfigOptions.enableWarp),
+            onChanged: (value) async {
+              await ref.read(ConfigOptions.enableWarp.notifier).update(value);
+            },
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
           SettingsSection(
             title: 'Обход блокировок',
             icon: Icons.content_cut_rounded,
@@ -210,6 +232,47 @@ class SettingsPage extends HookConsumerWidget {
             subtitle: const Text('Отправить отчёт разработчику'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.goNamed('reportProblem'),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.restore_rounded, color: Colors.orange),
+            title: const Text('Сбросить настройки'),
+            subtitle: const Text('Вернуть все параметры к стандартным значениям'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Сбросить настройки?'),
+                  content: const Text(
+                    'Все параметры VPN будут возвращены к стандартным значениям. '
+                    'Это может помочь, если подключение перестало работать после '
+                    'изменения настроек.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Отмена'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Сбросить'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                await ref.read(configOptionNotifierProvider.notifier).resetOption();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Настройки сброшены. Переподключитесь к VPN.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
           ),
           if (Breakpoint(context).isMobile()) ...[
             SettingsSection(

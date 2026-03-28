@@ -48,7 +48,7 @@ class SingboxConfigOption with _$SingboxConfigOption {
     // required bool enableDnsRouting,
     required bool independentDnsCache,
     required List<SingboxRule> rules,
-    // required SingboxMuxOption mux,
+    required SingboxMuxOption mux,
     required SingboxTlsTricks tlsTricks,
     required SingboxWarpOption warp,
     required SingboxWarpOption warp2,
@@ -83,18 +83,18 @@ class SingboxWarpOption with _$SingboxWarpOption {
   factory SingboxWarpOption.fromJson(Map<String, dynamic> json) => _$SingboxWarpOptionFromJson(json);
 }
 
-// @freezed
-// class SingboxMuxOption with _$SingboxMuxOption {
-//   @JsonSerializable(fieldRename: FieldRename.kebab)
-//   const factory SingboxMuxOption({
-//     required bool enable,
-//     required bool padding,
-//     required int maxStreams,
-//     required MuxProtocol protocol,
-//   }) = _SingboxMuxOption;
+@freezed
+class SingboxMuxOption with _$SingboxMuxOption {
+  @JsonSerializable(fieldRename: FieldRename.kebab)
+  const factory SingboxMuxOption({
+    required bool enable,
+    required bool padding,
+    required int maxStreams,
+    required MuxProtocol protocol,
+  }) = _SingboxMuxOption;
 
-//   factory SingboxMuxOption.fromJson(Map<String, dynamic> json) => _$SingboxMuxOptionFromJson(json);
-// }
+  factory SingboxMuxOption.fromJson(Map<String, dynamic> json) => _$SingboxMuxOptionFromJson(json);
+}
 
 @freezed
 class SingboxTlsTricks with _$SingboxTlsTricks {

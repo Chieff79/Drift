@@ -116,12 +116,26 @@ class SpeedTestService {
   }
 
   /// Probe servers and return the first reachable one.
+  /// If [preferredCountryCode] is given, tries matching server first.
   /// Returns null if no server responds (VPN not connected?).
   Future<SpeedServer?> selectBestServer({
     void Function(String status)? onStatus,
+    String? preferredCountryCode,
   }) async {
     onStatus?.call('Поиск сервера...');
-    for (final server in SpeedServers.all) {
+
+    // Reorder: put servers matching VPN exit country first
+    final servers = List<SpeedServer>.from(SpeedServers.all);
+    if (preferredCountryCode != null && preferredCountryCode.isNotEmpty) {
+      final cc = preferredCountryCode.toUpperCase();
+      servers.sort((a, b) {
+        final aMatch = a.countryCode.toUpperCase() == cc ? 0 : 1;
+        final bMatch = b.countryCode.toUpperCase() == cc ? 0 : 1;
+        return aMatch.compareTo(bMatch);
+      });
+    }
+
+    for (final server in servers) {
       if (_cancelled || _disposed) break;
       try {
         onStatus?.call('Проверка ${server.city}...');
