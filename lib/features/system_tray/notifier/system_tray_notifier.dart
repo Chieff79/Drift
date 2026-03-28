@@ -49,7 +49,7 @@ class SystemTrayNotifier extends _$SystemTrayNotifier with TrayListener, AppLogg
         .then((connection) => _modifyConnectionStatus(connection, urlTestDelay));
     final serviceMode = ref.watch(ConfigOptions.serviceMode);
 
-    await trayManager.setIcon(_trayIconPath(connection), isTemplate: false);
+    await trayManager.setIcon(_trayIconPath(connection), isTemplate: Platform.isMacOS);
     if (!PlatformUtils.isLinux) await trayManager.setToolTip(_trayTooltip(connection, urlTestDelay, t));
     await trayManager.setContextMenu(_trayMenu(connection, serviceMode, t));
   }
@@ -87,6 +87,21 @@ class SystemTrayNotifier extends _$SystemTrayNotifier with TrayListener, AppLogg
     final isDarkMode = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
     const images = Assets.images;
     final isWindows = PlatformUtils.isWindows;
+    final isMacOS = Platform.isMacOS;
+
+    // macOS: use monochrome template icons for native menu bar look
+    if (isMacOS) {
+      switch (status) {
+        case Connected():
+          return images.trayIconConnectedTemplatePng.path;
+        case Connecting():
+        case Disconnecting():
+          return images.trayIconDisconnectedTemplatePng.path;
+        case Disconnected():
+          return images.trayIconTemplatePng.path;
+      }
+    }
+
     switch (status) {
       case Connected():
         return isWindows ? images.trayIconConnectedIco : images.trayIconConnectedPng.path;

@@ -167,6 +167,14 @@ flutter:
     - assets/images/tray_icon_connected.png
     - assets/images/tray_icon_disconnected.ico
     - assets/images/tray_icon_disconnected.png
+    - assets/images/tray_icon_template.png
+    - assets/images/tray_icon_template@2x.png
+    - assets/images/tray_icon_connected_template.png
+    - assets/images/tray_icon_connected_template@2x.png
+    - assets/images/tray_icon_disconnected_template.png
+    - assets/images/tray_icon_disconnected_template@2x.png
+    - assets/images/tray_icon_dark_template.png
+    - assets/images/tray_icon_dark_template@2x.png
     - assets/images/world_map.png
     - assets/images/earth_texture.jpg
     - assets/images/source/ic_launcher_border.png
