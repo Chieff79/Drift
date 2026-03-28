@@ -93,12 +93,12 @@ class SystemTrayNotifier extends _$SystemTrayNotifier with TrayListener, AppLogg
     if (isMacOS) {
       switch (status) {
         case Connected():
-          return images.trayIconConnectedTemplatePng.path;
+          return 'assets/images/tray_icon_connected_template.png';
         case Connecting():
         case Disconnecting():
-          return images.trayIconDisconnectedTemplatePng.path;
+          return 'assets/images/tray_icon_disconnected_template.png';
         case Disconnected():
-          return images.trayIconTemplatePng.path;
+          return 'assets/images/tray_icon_template.png';
       }
     }
 
