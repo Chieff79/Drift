@@ -8,8 +8,6 @@ import 'package:hiddify/core/router/go_router/helper/custom_transition.dart';
 import 'package:hiddify/core/router/go_router/refresh_listenable.dart';
 import 'package:hiddify/features/about/widget/about_page.dart';
 import 'package:hiddify/features/home/widget/home_page.dart';
-import 'package:hiddify/features/speed_test/speed_test_page.dart';
-
 import 'package:hiddify/features/intro/widget/intro_page.dart';
 import 'package:hiddify/features/log/overview/logs_page.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_page.dart';
@@ -33,7 +31,6 @@ part 'routing_config_notifier.g.dart';
 
 // each branch in go router has its own focus scope
 final branchesScope = <String, FocusScopeNode>{
-  'speedtest': FocusScopeNode(),
   'home': FocusScopeNode(),
   'profiles': FocusScopeNode(),
   'settings': FocusScopeNode(),
@@ -47,14 +44,13 @@ final loadingConfig = RoutingConfig(
 );
 
 String getNameOfBranch(bool isMobileBreakpoint, bool showProfilesAction, int index) => isMobileBreakpoint
-    ? ['home', 'speedtest', 'settings'][index]
-    : ['home', 'speedtest', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'][index];
+    ? ['home', 'settings'][index]
+    : ['home', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'][index];
 
 int getIndexOfBranch(bool isMobileBreakpoint, bool showProfilesAction, String name) => isMobileBreakpoint
-    ? ['home', 'speedtest', 'settings'].indexOf(name)
+    ? ['home', 'settings'].indexOf(name)
     : [
         'home',
-        'speedtest',
         if (showProfilesAction) 'profiles',
         'settings',
         'logs',
@@ -140,16 +136,6 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
                 ),
               ],
             ),
-            // Tab 2: Speed Test
-            StatefulShellBranch(
-              routes: <GoRoute>[
-                GoRoute(
-                  name: 'speedtest',
-                  path: '/speedtest',
-                  builder: (_, _) => FocusScope(node: branchesScope['speedtest'], child: const SpeedTestPage()),
-                ),
-              ],
-            ),
             if (showProfilesAction)
               StatefulShellBranch(
                 routes: <GoRoute>[
@@ -180,7 +166,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
                     node: branchesScope['settings'],
                     child: PopScope(
                       canPop: false,
-                      onPopInvokedWithResult: (_, _) => context.goNamed('speedtest'),
+                      onPopInvokedWithResult: (_, _) => context.goNamed('home'),
                       child: SettingsPage(),
                     ),
                   ),
