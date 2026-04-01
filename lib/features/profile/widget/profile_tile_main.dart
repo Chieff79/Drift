@@ -16,12 +16,12 @@ class ProfileTileMain extends HookConsumerWidget {
   final ProfileEntity profile;
   final bool isMain;
   static const verifiedDomains = [
-    'drift-vpn.app',
+    'driftway.app',
     't.me',
     'telegram.me',
   ];
   static const verifiedLinks = [
-    'https://t.me/driftvpn',
+    'https://t.me/driftway',
   ];
   Future<void> _launchUrlWithCheck(BuildContext context, WidgetRef ref, String url) async {
     final uri = Uri.parse(url);
@@ -176,7 +176,7 @@ class ProfileTileMain extends HookConsumerWidget {
     if (host.endsWith('facebook.com')) {
       return FontAwesomeIcons.facebook;
     }
-    if (host.endsWith('drift-vpn.app')) {
+    if (host.endsWith('driftway.app')) {
       // return IconData();
     }
     return icon ?? FluentIcons.link_24_regular;
@@ -198,8 +198,8 @@ class ProfileTileMain extends HookConsumerWidget {
     if (host.endsWith('facebook.com')) {
       return uri.pathSegments.lastWhere((e) => e.isNotEmpty, orElse: () => '');
     }
-    if (host.endsWith('drift-vpn.app')) {
-      return "Drift VPN";
+    if (host.endsWith('driftway.app')) {
+      return "Drift";
     }
     return uri.host;
   }

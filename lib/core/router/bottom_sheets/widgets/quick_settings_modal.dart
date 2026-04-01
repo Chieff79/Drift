@@ -44,7 +44,7 @@ class QuickSettingsModal extends HookConsumerWidget {
               leading: const Icon(Icons.shield_rounded),
               title: const Text('Kill Switch'),
               subtitle: const Text(
-                'Блокировать трафик если VPN отключён',
+                'Блокировать трафик если защита отключена',
                 style: TextStyle(fontSize: 12),
               ),
               onTap: () async {

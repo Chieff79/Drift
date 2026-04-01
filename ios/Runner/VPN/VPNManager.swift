@@ -102,7 +102,7 @@ class VPNManager: ObservableObject {
             `protocol`.providerBundleIdentifier = Bundle.main.baseBundleIdentifier + ".tunnel"
             `protocol`.serverAddress = "localhost"
             newManager.protocolConfiguration = `protocol`
-            newManager.localizedDescription = "Drift VPN"
+            newManager.localizedDescription = "Drift"
             try await newManager.saveToPreferences()
             try await newManager.loadFromPreferences()
             self.manager = newManager

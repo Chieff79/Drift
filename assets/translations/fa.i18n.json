@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "شروع",
     "version": "نسخه",
     "ok": "باشه",
@@ -183,7 +183,7 @@
     },
     "settings": {
       "title": "تنظیمات",
-      "resetTunnel": "بازنشانی پروفایل VPN",
+      "resetTunnel": "بازنشانی پروفایل اتصال",
       "options": {
         "import": {
           "clipboard": "وارد کردن تنظیمات از کلیپ‌بورد",
@@ -216,7 +216,7 @@
         "autoStart": "شروع هنگام ورود به سیستم",
         "silentStart": "شروع در حالت کمینه",
         "ignoreBatteryOptimizations": "غیرفعال کردن بهینه‌سازی باتری",
-        "ignoreBatteryOptimizationsMsg": "حذف محدودیت‌ها برای عملکرد بهینه VPN",
+        "ignoreBatteryOptimizationsMsg": "حذف محدودیت‌ها برای عملکرد بهینه برنامه",
         "memoryLimit": "محدودیت حافظه",
         "memoryLimitMsg": "در صورت مواجهه با خطای کمبود حافظه یا بسته‌شدن‌های مکرر برنامه، این گزینه را فعال کنید",
         "debugMode": "حالت اشکال‌زدایی",
@@ -410,14 +410,14 @@
         "serviceModes": {
           "proxy": "فقط سرویس پروکسی",
           "systemProxy": "تنظیم پروکسی سیستم",
-          "tun": "VPN",
-          "tunService": "سرویس VPN"
+          "tun": "Tunnel",
+          "tunService": "سرویس Tunnel"
         },
         "shortServiceModes": {
           "proxy": "پروکسی",
           "systemProxy": "پروکسی سیستم",
-          "tun": "VPN",
-          "tunService": "سرویس VPN"
+          "tun": "Tunnel",
+          "tunService": "سرویس Tunnel"
         },
         "strictRoute": "مسیربندی سخت‌گیرانه",
         "tunImplementation": "پیاده‌سازی Tun",
@@ -430,7 +430,7 @@
         "tproxyPort": "پورت پروکسی شفاف",
         "directPort": "پورت مستقیم",
         "redirectPort": "پورت تغییر مسیر",
-        "allowConnectionFromLan": "اشتراک VPN در شبکه محلی"
+        "allowConnectionFromLan": "اشتراک اتصال در شبکه محلی"
       },
       "tlsTricks": {
         "title": "ترفندهای TLS",
@@ -515,7 +515,7 @@
     },
     "warpLicense": {
       "title": "رضایت‌نامه Cloudflare WARP",
-      "description(rich)": "Cloudflare WARP یک ارائه‌دهنده رایگان WireGuard VPN است. با فعال کردن این گزینه، شما با ${tos(شرایط خدمات)} و ${privacy(سیاست حفظ حریم خصوصی)} Cloudflare WARP موافقت می‌کنید."
+      "description(rich)": "Cloudflare WARP یک ارائه‌دهنده رایگان WireGuard است. با فعال کردن این گزینه، شما با ${tos(شرایط خدمات)} و ${privacy(سیاست حفظ حریم خصوصی)} Cloudflare WARP موافقت می‌کنید."
     },
     "newVersion": {
       "title": "به‌روزرسانی موجود است",
@@ -559,7 +559,7 @@
     },
     "noActiveProfile": {
       "title": "یک پروفایل انتخاب کنید",
-      "msg": "بیایید با افزودن یک پروفایل اتصال که شامل جزئیات اتصال VPN شماست، شروع کنیم.\n\nهنوز سرور VPN ندارید؟ نگران نباشید، با دنبال کردن راهنمای زیر می‌توانید به سرعت و رایگان یکی برای خودتان بسازید.",
+      "msg": "بیایید با افزودن یک پروفایل اتصال که شامل جزئیات اتصال شماست، شروع کنیم.\n\nهنوز سرور ندارید؟ نگران نباشید، با دنبال کردن راهنمای زیر می‌توانید به سرعت و رایگان یکی برای خودتان بسازید.",
       "helpBtn": {
         "label": "راهنمایی کن",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -624,14 +624,14 @@
     },
     "connectivity": {
       "unexpected": "شکست غیرمنتظره",
-      "missingVpnPermission": "مجوز VPN وجود ندارد",
+      "missingVpnPermission": "مجوز اتصال وجود ندارد",
       "missingNotificationPermission": "مجوز اعلان وجود ندارد",
       "core": "خطای هسته"
     },
     "singbox": {
       "serviceNotRunning": "سرویس در حال اجرا نیست",
       "missingPrivilege": "دسترسی وجود ندارد",
-      "missingPrivilegeMsg": "حالت VPN به دسترسی ادمین نیاز دارد. یا برنامه را به عنوان ادمین مجدداً راه‌اندازی کنید یا حالت سرویس را تغییر دهید.",
+      "missingPrivilegeMsg": "حالت tunnel به دسترسی ادمین نیاز دارد. یا برنامه را به عنوان ادمین مجدداً راه‌اندازی کنید یا حالت سرویس را تغییر دهید.",
       "invalidConfigOptions": "گزینه‌های پیکربندی نامعتبر",
       "invalidConfig": "پیکربندی نامعتبر"
     },

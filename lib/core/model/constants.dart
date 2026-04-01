@@ -8,7 +8,7 @@ abstract class Constants {
   static const githubReleasesApiUrl = "https://api.github.com/repos/Chieff79/Drift/releases";
   static const githubLatestReleaseUrl = "https://github.com/Chieff79/Drift/releases/latest";
   static const appCastUrl = "https://raw.githubusercontent.com/Chieff79/Drift/main/appcast.xml";
-  static const telegramChannelUrl = "https://t.me/driftvpn";
+  static const telegramChannelUrl = "https://t.me/driftway";
   static const privacyPolicyUrl = "https://github.com/Chieff79/Drift/blob/main/PRIVACY.md";
   static const termsAndConditionsUrl = "https://github.com/Chieff79/Drift/blob/main/TERMS.md";
   static const cfWarpPrivacyPolicy = "https://www.cloudflare.com/application/privacypolicy/";

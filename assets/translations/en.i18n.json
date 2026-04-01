@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "Start",
     "version": "Version",
     "ok": "OK",
@@ -88,7 +88,7 @@
   "intro": {
     "banner": "All you need for an unrestricted internet",
     "termsAndPolicyCaution(rich)": "By continuing you agree to ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Made with ❤️ by Drift VPN - ${tap_source(Open Source)} (${tap_license(License)})"
+    "info(rich)": "Made with ❤️ by DriftWay - ${tap_source(Open Source)} (${tap_license(License)})"
   },
   "pages": {
     "home": {
@@ -184,7 +184,7 @@
     },
     "settings": {
       "title": "Settings",
-      "resetTunnel": "Reset VPN profile",
+      "resetTunnel": "Reset connection profile",
       "options": {
         "import": {
           "clipboard": "Import options from clipboard",
@@ -217,7 +217,7 @@
         "autoStart": "Start at login",
         "silentStart": "Start minimized",
         "ignoreBatteryOptimizations": "Disable battery optimization",
-        "ignoreBatteryOptimizationsMsg": "Remove restrictions for optimal VPN performance",
+        "ignoreBatteryOptimizationsMsg": "Remove restrictions for optimal app performance",
         "memoryLimit": "Memory limit",
         "memoryLimitMsg": "Enable if you're experiencing out of memory errors or frequent app crashes",
         "debugMode": "Debug mode",
@@ -411,14 +411,14 @@
         "serviceModes": {
           "proxy": "Proxy service only",
           "systemProxy": "Set system proxy",
-          "tun": "VPN",
-          "tunService": "VPN service"
+          "tun": "Tunnel",
+          "tunService": "Tunnel service"
         },
         "shortServiceModes": {
           "proxy": "Proxy",
           "systemProxy": "System proxy",
-          "tun": "VPN",
-          "tunService": "VPN service"
+          "tun": "Tunnel",
+          "tunService": "Tunnel service"
         },
         "strictRoute": "Strict route",
         "tunImplementation": "Tun implementation",
@@ -431,7 +431,7 @@
         "tproxyPort": "Transparent proxy port",
         "directPort": "Direct port",
         "redirectPort": "Redirect port",
-        "allowConnectionFromLan": "Share VPN in local network"
+        "allowConnectionFromLan": "Share connection in local network"
       },
       "tlsTricks": {
         "title": "TLS tricks",
@@ -516,7 +516,7 @@
     },
     "warpLicense": {
       "title": "Cloudflare WARP consent",
-      "description(rich)": "Cloudflare WARP is a free WireGuard VPN provider. By enabling this option you are agreeing to the Cloudflare WARP's ${tos(Terms of service)} and ${privacy(Privacy policy)}."
+      "description(rich)": "Cloudflare WARP is a free WireGuard provider. By enabling this option you are agreeing to the Cloudflare WARP's ${tos(Terms of service)} and ${privacy(Privacy policy)}."
     },
     "newVersion": {
       "title": "Update available",
@@ -560,7 +560,7 @@
     },
     "noActiveProfile": {
       "title": "Choose a profile",
-      "msg": "Let's get started by adding a connection profile that includes your VPN connection details.\n\nDon’t have a VPN server yet? No worries—just follow the tutorial below to set one up quickly and for free.",
+      "msg": "Let’s get started by adding a connection profile that includes your connection details.\n\nDon’t have a server yet? No worries—just follow the tutorial below to set one up quickly and for free.",
       "helpBtn": {
         "label": "Show me how",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -627,14 +627,14 @@
     },
     "connectivity": {
       "unexpected": "Unexpected failure",
-      "missingVpnPermission": "Missing VPN permission",
+      "missingVpnPermission": "Missing tunnel permission",
       "missingNotificationPermission": "Missing notification permission",
       "core": "Core error"
     },
     "singbox": {
       "serviceNotRunning": "Service is not running",
       "missingPrivilege": "Missing privilege",
-      "missingPrivilegeMsg": "VPN mode requires administrator privileges. Either relaunch the app as administrator or change service mode.",
+      "missingPrivilegeMsg": "Tunnel mode requires administrator privileges. Either relaunch the app as administrator or change service mode.",
       "invalidConfigOptions": "Invalid configuration options",
       "invalidConfig": "Invalid configuration"
     },

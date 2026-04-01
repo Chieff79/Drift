@@ -25,7 +25,7 @@ class RouteOptionsPage extends HookConsumerWidget {
           if (PlatformUtils.isAndroid)
             ListTile(
               title: Text(t.pages.settings.routing.perAppProxy.title),
-              subtitle: const Text('Выбрать приложения для VPN'),
+              subtitle: const Text('Выбрать приложения для туннеля'),
               leading: const Icon(Icons.apps_rounded),
               trailing: Switch(
                 value: perAppProxy,

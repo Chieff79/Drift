@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "Начать",
     "version": "Версия",
     "ok": "OK",
@@ -92,7 +92,7 @@
   "intro": {
     "banner": "Все, что вам нужно для интернета без ограничений",
     "termsAndPolicyCaution(rich)": "Продолжая, вы соглашаетесь с ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Сделано с ❤️ Drift VPN - ${tap_source(Открытый исходный код)} (${tap_license(Лицензия)})"
+    "info(rich)": "Сделано с ❤️ DriftWay - ${tap_source(Открытый исходный код)} (${tap_license(Лицензия)})"
   },
   "pages": {
     "home": {
@@ -188,7 +188,7 @@
     },
     "settings": {
       "title": "Настройки",
-      "resetTunnel": "Сбросить профиль VPN",
+      "resetTunnel": "Сбросить профиль подключения",
       "options": {
         "import": {
           "clipboard": "Импортировать настройки из буфера обмена",
@@ -221,7 +221,7 @@
         "autoStart": "Запускать при входе в систему",
         "silentStart": "Запускать свернутым",
         "ignoreBatteryOptimizations": "Отключить оптимизацию батареи",
-        "ignoreBatteryOptimizationsMsg": "Снять ограничения для оптимальной работы VPN",
+        "ignoreBatteryOptimizationsMsg": "Снять ограничения для оптимальной работы приложения",
         "memoryLimit": "Ограничение памяти",
         "memoryLimitMsg": "Включите, если вы сталкиваетесь с ошибками нехватки памяти или частыми сбоями приложения",
         "debugMode": "Режим отладки",
@@ -415,14 +415,14 @@
         "serviceModes": {
           "proxy": "Только прокси-служба",
           "systemProxy": "Установить системный прокси",
-          "tun": "VPN",
-          "tunService": "Служба VPN"
+          "tun": "Туннель",
+          "tunService": "Служба туннеля"
         },
         "shortServiceModes": {
           "proxy": "Прокси",
           "systemProxy": "Системный прокси",
-          "tun": "VPN",
-          "tunService": "Служба VPN"
+          "tun": "Туннель",
+          "tunService": "Служба туннеля"
         },
         "strictRoute": "Строгая маршрутизация",
         "tunImplementation": "Реализация TUN",
@@ -435,7 +435,7 @@
         "tproxyPort": "Порт прозрачного прокси",
         "directPort": "Локальный порт direct",
         "redirectPort": "Порт перенаправления",
-        "allowConnectionFromLan": "Поделиться VPN в локальной сети"
+        "allowConnectionFromLan": "Поделиться подключением в локальной сети"
       },
       "tlsTricks": {
         "title": "Трюки TLS",
@@ -520,7 +520,7 @@
     },
     "warpLicense": {
       "title": "Соглашение о WARP от Cloudflare",
-      "description(rich)": "Cloudflare WARP - это бесплатный провайдер WireGuard VPN. Включая эту опцию, вы соглашаетесь с ${tos(Условиями обслуживания)} и ${privacy(Политикой конфиденциальности)} Cloudflare WARP."
+      "description(rich)": "Cloudflare WARP — бесплатный сервис защиты трафика. Включая эту опцию, вы соглашаетесь с ${tos(Условиями обслуживания)} и ${privacy(Политикой конфиденциальности)} Cloudflare WARP."
     },
     "newVersion": {
       "title": "Доступно обновление",
@@ -564,7 +564,7 @@
     },
     "noActiveProfile": {
       "title": "Выберите профиль",
-      "msg": "Давайте начнем с добавления профиля подключения, который содержит данные вашего VPN-соединения.\n\nЕще нет VPN-сервера? Не беспокойтесь — просто следуйте руководству ниже, чтобы быстро и бесплатно настроить его.",
+      "msg": "Давайте начнем с добавления профиля подключения.\n\nЕще нет сервера? Не беспокойтесь — просто следуйте руководству ниже, чтобы быстро настроить его.",
       "helpBtn": {
         "label": "Покажите, как",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -631,14 +631,14 @@
     },
     "connectivity": {
       "unexpected": "Непредвиденный сбой",
-      "missingVpnPermission": "Отсутствует разрешение на VPN",
+      "missingVpnPermission": "Отсутствует разрешение на подключение",
       "missingNotificationPermission": "Отсутствует разрешение на уведомления",
       "core": "Ошибка ядра"
     },
     "singbox": {
       "serviceNotRunning": "Служба не запущена",
       "missingPrivilege": "Отсутствуют права",
-      "missingPrivilegeMsg": "Режим VPN требует прав администратора. Либо перезапустите приложение от имени администратора, либо измените режим службы.",
+      "missingPrivilegeMsg": "Режим туннеля требует прав администратора. Либо перезапустите приложение от имени администратора, либо измените режим службы.",
       "invalidConfigOptions": "Неверные параметры конфигурации",
       "invalidConfig": "Неверная конфигурация"
     },

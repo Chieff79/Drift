@@ -11,4 +11,4 @@ PRODUCT_NAME = Drift
 PRODUCT_BUNDLE_IDENTIFIER = com.drift.vpn
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 drift-vpn.app. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 DriftWay. All rights reserved.

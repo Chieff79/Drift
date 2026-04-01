@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "Mulai",
     "version": "Versi",
     "ok": "Oke",
@@ -88,7 +88,7 @@
   "intro": {
     "banner": "Semua yang Anda butuhkan untuk internet tanpa batasan",
     "termsAndPolicyCaution(rich)": "Dengan melanjutkan, Anda menyetujui ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Dibuat dengan ❤️ oleh Drift VPN - ${tap_source(Sumber Terbuka)} (${tap_license(Lisensi)})"
+    "info(rich)": "Dibuat dengan ❤️ oleh DriftWay - ${tap_source(Sumber Terbuka)} (${tap_license(Lisensi)})"
   },
   "pages": {
     "home": {
@@ -183,7 +183,7 @@
     },
     "settings": {
       "title": "Pengaturan",
-      "resetTunnel": "Setel ulang profil VPN",
+      "resetTunnel": "Setel ulang profil koneksi",
       "options": {
         "import": {
           "clipboard": "Impor opsi dari papan klip",
@@ -216,7 +216,7 @@
         "autoStart": "Mulai saat masuk",
         "silentStart": "Mulai diminimalkan",
         "ignoreBatteryOptimizations": "Nonaktifkan optimasi baterai",
-        "ignoreBatteryOptimizationsMsg": "Hapus batasan untuk kinerja VPN yang optimal",
+        "ignoreBatteryOptimizationsMsg": "Hapus batasan untuk kinerja aplikasi yang optimal",
         "memoryLimit": "Batas memori",
         "memoryLimitMsg": "Aktifkan jika Anda mengalami kesalahan kehabisan memori atau aplikasi sering macet",
         "debugMode": "Mode debug",
@@ -410,14 +410,14 @@
         "serviceModes": {
           "proxy": "Hanya layanan proksi",
           "systemProxy": "Atur proksi sistem",
-          "tun": "VPN",
-          "tunService": "Layanan VPN"
+          "tun": "Tunnel",
+          "tunService": "Layanan Tunnel"
         },
         "shortServiceModes": {
           "proxy": "Proxy",
           "systemProxy": "Proxy sistem",
-          "tun": "VPN",
-          "tunService": "Layanan VPN"
+          "tun": "Tunnel",
+          "tunService": "Layanan Tunnel"
         },
         "strictRoute": "Rute ketat",
         "tunImplementation": "Implementasi TUN",
@@ -430,7 +430,7 @@
         "tproxyPort": "Port proksi transparan",
         "directPort": "Port direct",
         "redirectPort": "Port pengalihan",
-        "allowConnectionFromLan": "Bagikan VPN di jaringan lokal"
+        "allowConnectionFromLan": "Bagikan di jaringan lokal"
       },
       "tlsTricks": {
         "title": "Trik TLS",
@@ -515,7 +515,7 @@
     },
     "warpLicense": {
       "title": "Persetujuan Cloudflare WARP",
-      "description(rich)": "Cloudflare WARP adalah penyedia VPN WireGuard gratis. Dengan mengaktifkan opsi ini, Anda menyetujui ${tos(Ketentuan Layanan)} dan ${privacy(Kebijakan Privasi)} Cloudflare WARP."
+      "description(rich)": "Cloudflare WARP adalah penyedia WireGuard gratis. Dengan mengaktifkan opsi ini, Anda menyetujui ${tos(Ketentuan Layanan)} dan ${privacy(Kebijakan Privasi)} Cloudflare WARP."
     },
     "newVersion": {
       "title": "Pembaruan tersedia",
@@ -559,7 +559,7 @@
     },
     "noActiveProfile": {
       "title": "Pilih profil",
-      "msg": "Mari kita mulai dengan menambahkan profil koneksi yang berisi detail koneksi VPN Anda.\n\nBelum punya server VPN? Jangan khawatir, ikuti tutorial di bawah ini untuk mengaturnya dengan cepat dan gratis.",
+      "msg": "Mari kita mulai dengan menambahkan profil koneksi yang berisi detail koneksi Anda.\n\nBelum punya server? Jangan khawatir, ikuti tutorial di bawah ini untuk mengaturnya dengan cepat dan gratis.",
       "helpBtn": {
         "label": "Tunjukkan caranya",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -624,14 +624,14 @@
     },
     "connectivity": {
       "unexpected": "Kegagalan tak terduga",
-      "missingVpnPermission": "Izin VPN hilang",
+      "missingVpnPermission": "Izin hilang",
       "missingNotificationPermission": "Izin notifikasi hilang",
       "core": "Kesalahan inti"
     },
     "singbox": {
       "serviceNotRunning": "Layanan tidak berjalan",
       "missingPrivilege": "Izin hilang",
-      "missingPrivilegeMsg": "Mode VPN memerlukan izin administrator. Harap mulai ulang aplikasi sebagai administrator atau ubah mode layanan.",
+      "missingPrivilegeMsg": "Mode tunnel memerlukan izin administrator. Harap mulai ulang aplikasi sebagai administrator atau ubah mode layanan.",
       "invalidConfigOptions": "Opsi konfigurasi tidak valid",
       "invalidConfig": "Konfigurasi tidak valid"
     },

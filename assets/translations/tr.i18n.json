@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "Başlat",
     "version": "Sürüm",
     "ok": "Tamam",
@@ -88,7 +88,7 @@
   "intro": {
     "banner": "Sınırsız bir internet için ihtiyacınız olan her şey",
     "termsAndPolicyCaution(rich)": "Devam ederek ${tap(@:pages.about.termsAndConditions)} kabul etmiş olursunuz",
-    "info(rich)": "Drift VPN tarafından ❤️ ile yapıldı - ${tap_source(Açık Kaynak)} (${tap_license(Lisans)})"
+    "info(rich)": "DriftWay tarafından ❤️ ile yapıldı - ${tap_source(Açık Kaynak)} (${tap_license(Lisans)})"
   },
   "pages": {
     "home": {
@@ -183,7 +183,7 @@
     },
     "settings": {
       "title": "Ayarlar",
-      "resetTunnel": "VPN profilini sıfırla",
+      "resetTunnel": "Bağlantı profilini sıfırla",
       "options": {
         "import": {
           "clipboard": "Seçenekleri panodan içe aktar",
@@ -216,7 +216,7 @@
         "autoStart": "Oturum açılışında başlat",
         "silentStart": "Simge durumunda başlat",
         "ignoreBatteryOptimizations": "Pil optimizasyonunu devre dışı bırak",
-        "ignoreBatteryOptimizationsMsg": "Optimum VPN performansı için kısıtlamaları kaldırın",
+        "ignoreBatteryOptimizationsMsg": "Optimum uygulama performansı için kısıtlamaları kaldırın",
         "memoryLimit": "Bellek limiti",
         "memoryLimitMsg": "Bellek yetersizliği hataları veya sık uygulama çökmeleri yaşıyorsanız etkinleştirin",
         "debugMode": "Hata ayıklama modu",
@@ -410,14 +410,14 @@
         "serviceModes": {
           "proxy": "Yalnızca proxy servisi",
           "systemProxy": "Sistem proxy'sini ayarla",
-          "tun": "VPN",
-          "tunService": "VPN servisi"
+          "tun": "Tunnel",
+          "tunService": "Tunnel servisi"
         },
         "shortServiceModes": {
           "proxy": "Proxy",
           "systemProxy": "Sistem proxy'si",
-          "tun": "VPN",
-          "tunService": "VPN servisi"
+          "tun": "Tunnel",
+          "tunService": "Tunnel servisi"
         },
         "strictRoute": "Katı yönlendirme",
         "tunImplementation": "TUN uygulaması",
@@ -430,7 +430,7 @@
         "tproxyPort": "Şeffaf proxy portu",
         "directPort": "Direct portu",
         "redirectPort": "Yönlendirme portu",
-        "allowConnectionFromLan": "VPN'i yerel ağda paylaş"
+        "allowConnectionFromLan": "yerel ağda paylaş"
       },
       "tlsTricks": {
         "title": "TLS hileleri",
@@ -515,7 +515,7 @@
     },
     "warpLicense": {
       "title": "Cloudflare WARP onayı",
-      "description(rich)": "Cloudflare WARP ücretsiz bir WireGuard VPN sağlayıcısıdır. Bu seçeneği etkinleştirerek Cloudflare WARP'ın ${tos(Hizmet Şartları)}'nı ve ${privacy(Gizlilik Politikası)}'nı kabul etmiş olursunuz."
+      "description(rich)": "Cloudflare WARP ücretsiz bir WireGuard sağlayıcısıdır. Bu seçeneği etkinleştirerek Cloudflare WARP'ın ${tos(Hizmet Şartları)}'nı ve ${privacy(Gizlilik Politikası)}'nı kabul etmiş olursunuz."
     },
     "newVersion": {
       "title": "Güncelleme mevcut",
@@ -559,7 +559,7 @@
     },
     "noActiveProfile": {
       "title": "Bir profil seçin",
-      "msg": "VPN bağlantı ayrıntılarınızı içeren bir bağlantı profili ekleyerek başlayalım.\n\nHenüz bir VPN sunucunuz yok mu? Endişelenmeyin, hızlı ve ücretsiz bir şekilde kurmak için aşağıdaki eğitimi takip edin.",
+      "msg": "bağlantı ayrıntılarınızı içeren bir bağlantı profili ekleyerek başlayalım.\n\nHenüz bir sunucunuz yok mu? Endişelenmeyin, hızlı ve ücretsiz bir şekilde kurmak için aşağıdaki eğitimi takip edin.",
       "helpBtn": {
         "label": "Nasıl yapıldığını göster",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -624,14 +624,14 @@
     },
     "connectivity": {
       "unexpected": "Beklenmeyen hata",
-      "missingVpnPermission": "VPN izni eksik",
+      "missingVpnPermission": "İzin eksik",
       "missingNotificationPermission": "Bildirim izni eksik",
       "core": "Çekirdek hatası"
     },
     "singbox": {
       "serviceNotRunning": "Servis çalışmıyor",
       "missingPrivilege": "Eksik yetki",
-      "missingPrivilegeMsg": "VPN modu yönetici yetkisi gerektirir. Lütfen uygulamayı yönetici olarak yeniden başlatın veya servis modunu değiştirin.",
+      "missingPrivilegeMsg": "Tunnel modu yönetici yetkisi gerektirir. Lütfen uygulamayı yönetici olarak yeniden başlatın veya servis modunu değiştirin.",
       "invalidConfigOptions": "Geçersiz yapılandırma seçenekleri",
       "invalidConfig": "Geçersiz yapılandırma"
     },

@@ -108,7 +108,7 @@ class HomePage extends HookConsumerWidget {
 
                             const Gap(12),
 
-                            // ── VPN IP (compact, at bottom) ─────────────────
+                            // ── Protected IP (compact, at bottom) ─────────────────
                             if (isConnected) const _CompactVpnIpBar(),
 
                             const Gap(8),
@@ -161,7 +161,7 @@ class _IpStatusCard extends ConsumerWidget {
   }
 }
 
-// ── BEFORE VPN: shows real IP ─────────────────────────────────────────────────
+// ── Before connection: shows real IP ─────────────────────────────────────────────────
 
 class _DisconnectedIpCard extends ConsumerWidget {
   const _DisconnectedIpCard({super.key, required this.isConnecting});
@@ -247,7 +247,7 @@ class _DisconnectedIpCard extends ConsumerWidget {
   }
 }
 
-// ── AFTER VPN: shows VPN IP ───────────────────────────────────────────────────
+// ── After connection: shows protected IP ───────────────────────────────────────────────────
 
 class _ConnectedIpCard extends ConsumerWidget {
   const _ConnectedIpCard({super.key});
@@ -297,7 +297,7 @@ class _ConnectedIpCard extends ConsumerWidget {
 
           const Gap(14),
 
-          // VPN IP details
+          // Protected IP details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,7 +305,7 @@ class _ConnectedIpCard extends ConsumerWidget {
                 Row(
                   children: [
                     Text(
-                      'VPN IP',
+                      'Защищённый IP',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: const Color(0xFF30D158),
                         letterSpacing: 0.5,
@@ -494,7 +494,7 @@ class _LocationChip extends StatelessWidget {
           ),
         const Gap(4),
         Text(
-          label.isNotEmpty ? label : (isSource ? 'Вы' : 'VPN'),
+          label.isNotEmpty ? label : (isSource ? 'Вы' : 'Drift'),
           style: theme.textTheme.labelSmall?.copyWith(
             color: isSource
                 ? theme.colorScheme.onSurface.withValues(alpha: .6)
@@ -508,7 +508,7 @@ class _LocationChip extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  COMPACT VPN IP BAR (bottom)
+//  COMPACT PROTECTED IP BAR (bottom)
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _CompactVpnIpBar extends ConsumerWidget {
@@ -540,7 +540,7 @@ class _CompactVpnIpBar extends ConsumerWidget {
                 color: const Color(0xFF30D158).withValues(alpha: 0.7)),
             const Gap(6),
             Text(
-              'VPN IP',
+              'Защищённый IP',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: const Color(0xFF30D158),
                 fontWeight: FontWeight.w600,

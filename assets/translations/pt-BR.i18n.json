@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "Começar",
     "version": "Versão",
     "ok": "OK",
@@ -88,7 +88,7 @@
   "intro": {
     "banner": "Tudo o que você precisa para uma internet sem restrições",
     "termsAndPolicyCaution(rich)": "Ao continuar, você concorda com os ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "Feito com ❤️ por Drift VPN - ${tap_source(Código Aberto)} (${tap_license(Licença)})"
+    "info(rich)": "Feito com ❤️ por DriftWay - ${tap_source(Código Aberto)} (${tap_license(Licença)})"
   },
   "pages": {
     "home": {
@@ -183,7 +183,7 @@
     },
     "settings": {
       "title": "Configurações",
-      "resetTunnel": "Redefinir perfil de VPN",
+      "resetTunnel": "Redefinir perfil de conexão",
       "options": {
         "import": {
           "clipboard": "Importar opções da área de transferência",
@@ -216,7 +216,7 @@
         "autoStart": "Iniciar com o sistema",
         "silentStart": "Iniciar minimizado",
         "ignoreBatteryOptimizations": "Desativar otimização de bateria",
-        "ignoreBatteryOptimizationsMsg": "Remover restrições para um desempenho ideal da VPN",
+        "ignoreBatteryOptimizationsMsg": "Remover restrições para um desempenho ideal do aplicativo",
         "memoryLimit": "Limite de memória",
         "memoryLimitMsg": "Ative se estiver enfrentando erros de falta de memória ou travamentos frequentes do aplicativo",
         "debugMode": "Modo de depuração",
@@ -410,14 +410,14 @@
         "serviceModes": {
           "proxy": "Apenas serviço de proxy",
           "systemProxy": "Definir proxy do sistema",
-          "tun": "VPN",
-          "tunService": "Serviço VPN"
+          "tun": "Tunnel",
+          "tunService": "Serviço Tunnel"
         },
         "shortServiceModes": {
           "proxy": "Proxy",
           "systemProxy": "Proxy do sistema",
-          "tun": "VPN",
-          "tunService": "Serviço VPN"
+          "tun": "Tunnel",
+          "tunService": "Serviço Tunnel"
         },
         "strictRoute": "Roteamento estrito",
         "tunImplementation": "Implementação de TUN",
@@ -430,7 +430,7 @@
         "tproxyPort": "Porta de proxy transparente",
         "directPort": "Porta de directo",
         "redirectPort": "Porta de redirecionamento",
-        "allowConnectionFromLan": "Compartilhar VPN na rede local"
+        "allowConnectionFromLan": "Compartilhar na rede local"
       },
       "tlsTricks": {
         "title": "Truques de TLS",
@@ -515,7 +515,7 @@
     },
     "warpLicense": {
       "title": "Consentimento do Cloudflare WARP",
-      "description(rich)": "O Cloudflare WARP é um provedor de VPN WireGuard gratuito. Ao ativar esta opção, você concorda com os ${tos(Termos de Serviço)} e a ${privacy(Política de Privacidade)} do Cloudflare WARP."
+      "description(rich)": "O Cloudflare WARP é um provedor de WireGuard gratuito. Ao ativar esta opção, você concorda com os ${tos(Termos de Serviço)} e a ${privacy(Política de Privacidade)} do Cloudflare WARP."
     },
     "newVersion": {
       "title": "Atualização disponível",
@@ -559,7 +559,7 @@
     },
     "noActiveProfile": {
       "title": "Escolha um perfil",
-      "msg": "Para começar, adicione um perfil de conexão que inclua os detalhes da sua conexão VPN.\n\nAinda não tem um servidor VPN? Não se preocupe, siga o tutorial abaixo para configurar um rapidamente e de graça.",
+      "msg": "Para começar, adicione um perfil de conexão que inclua os detalhes da sua conexão.\n\nAinda não tem um servidor? Não se preocupe, siga o tutorial abaixo para configurar um rapidamente e de graça.",
       "helpBtn": {
         "label": "Mostre-me como",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -624,14 +624,14 @@
     },
     "connectivity": {
       "unexpected": "Falha inesperada",
-      "missingVpnPermission": "Permissão de VPN ausente",
+      "missingVpnPermission": "Permissão ausente",
       "missingNotificationPermission": "Permissão de notificação ausente",
       "core": "Erro no núcleo"
     },
     "singbox": {
       "serviceNotRunning": "O serviço não está em execução",
       "missingPrivilege": "Permissão ausente",
-      "missingPrivilegeMsg": "O modo VPN requer privilégios de administrador. Reinicie o aplicativo como administrador ou altere o modo de serviço.",
+      "missingPrivilegeMsg": "O modo tunnel requer privilégios de administrador. Reinicie o aplicativo como administrador ou altere o modo de serviço.",
       "invalidConfigOptions": "Opções de configuração inválidas",
       "invalidConfig": "Configuração inválida"
     },

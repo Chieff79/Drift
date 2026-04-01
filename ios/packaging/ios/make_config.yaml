@@ -1,16 +1,16 @@
-display_name: Drift VPN
+display_name: Drift
 
 icon: ..\..\assets\images\windows.ico
 
 keywords:
   - Drift
-  - VPN
+  - Privacy
   - Proxy
   - V2ray
   - VLESS
   - WireGuard
 
-generic_name: Drift VPN
+generic_name: Drift
 
 actions:
   - name: Start

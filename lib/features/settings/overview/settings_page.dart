@@ -160,7 +160,7 @@ class SettingsPage extends HookConsumerWidget {
               child: ListTile(
                 leading: const Icon(Icons.call_split_rounded),
                 title: const Text('Split Tunneling'),
-                subtitle: const Text('Выбрать приложения для VPN'),
+                subtitle: const Text('Выбрать приложения для туннеля'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.goNamed('perAppProxy'),
               ),
@@ -181,7 +181,7 @@ class SettingsPage extends HookConsumerWidget {
           SwitchListTile.adaptive(
             secondary: const Icon(Icons.shield_rounded),
             title: const Text('Kill Switch'),
-            subtitle: const Text('Блокировать трафик если VPN отключён'),
+            subtitle: const Text('Блокировать трафик если защита отключена'),
             value: ref.watch(ConfigOptions.strictRoute),
             onChanged: (value) async {
               await ref.read(ConfigOptions.strictRoute.notifier).update(value);
@@ -245,7 +245,7 @@ class SettingsPage extends HookConsumerWidget {
                 builder: (ctx) => AlertDialog(
                   title: const Text('Сбросить настройки?'),
                   content: const Text(
-                    'Все параметры VPN будут возвращены к стандартным значениям. '
+                    'Все параметры будут возвращены к стандартным значениям. '
                     'Это может помочь, если подключение перестало работать после '
                     'изменения настроек.',
                   ),
@@ -266,7 +266,7 @@ class SettingsPage extends HookConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Настройки сброшены. Переподключитесь к VPN.'),
+                      content: Text('Настройки сброшены. Переподключитесь.'),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );

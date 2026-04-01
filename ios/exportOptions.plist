@@ -11,9 +11,9 @@
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>com.drift.vpn</key>
-		<string>Drift VPN AppStore</string>
+		<string>Drift AppStore</string>
 		<key>com.drift.vpn.tunnel</key>
-		<string>Drift VPN Tunnel AppStore</string>
+		<string>Drift Tunnel AppStore</string>
 	</dict>
 	<key>signingStyle</key>
 	<string>manual</string>

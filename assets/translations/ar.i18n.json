@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "ابدأ",
     "version": "الإصدار",
     "ok": "موافق",
@@ -94,7 +94,7 @@
   "intro": {
     "banner": "كل ما تحتاجه لإنترنت بلا قيود",
     "termsAndPolicyCaution(rich)": "بالاستمرار، أنت توافق على ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "صُنع بـ ❤️ بواسطة Drift VPN - ${tap_source(مفتوح المصدر)} (${tap_license(الرخصة)})"
+    "info(rich)": "صُنع بـ ❤️ بواسطة DriftWay - ${tap_source(مفتوح المصدر)} (${tap_license(الرخصة)})"
   },
   "pages": {
     "home": {
@@ -189,7 +189,7 @@
     },
     "settings": {
       "title": "الإعدادات",
-      "resetTunnel": "إعادة تعيين ملف VPN",
+      "resetTunnel": "إعادة تعيين ملف الاتصال",
       "options": {
         "import": {
           "clipboard": "استيراد الخيارات من الحافظة",
@@ -222,7 +222,7 @@
         "autoStart": "البدء عند تسجيل الدخول",
         "silentStart": "البدء في الخلفية",
         "ignoreBatteryOptimizations": "تجاهل تحسينات البطارية",
-        "ignoreBatteryOptimizationsMsg": "إزالة القيود للحصول على أفضل أداء للـ VPN",
+        "ignoreBatteryOptimizationsMsg": "إزالة القيود للحصول على أفضل أداء للتطبيق",
         "memoryLimit": "حد الذاكرة",
         "memoryLimitMsg": "قم بتفعيل هذا الخيار إذا كنت تواجه أخطاء نفاد الذاكرة أو تعطل التطبيق بشكل متكرر",
         "debugMode": "وضع التصحيح",
@@ -416,14 +416,14 @@
         "serviceModes": {
           "proxy": "خدمة البروكسي فقط",
           "systemProxy": "تعيين بروكسي النظام",
-          "tun": "VPN",
-          "tunService": "خدمة VPN"
+          "tun": "Tunnel",
+          "tunService": "خدمة Tunnel"
         },
         "shortServiceModes": {
           "proxy": "بروكسي",
           "systemProxy": "بروكسي النظام",
-          "tun": "VPN",
-          "tunService": "خدمة VPN"
+          "tun": "Tunnel",
+          "tunService": "خدمة Tunnel"
         },
         "strictRoute": "توجيه صارم",
         "tunImplementation": "تنفيذ Tun",
@@ -436,7 +436,7 @@
         "tproxyPort": "منفذ البروكسي الشفاف",
         "directPort": "منفذ مباشر",
         "redirectPort": "منفذ إعادة التوجيه",
-        "allowConnectionFromLan": "مشاركة VPN على الشبكة المحلية"
+        "allowConnectionFromLan": "مشاركة الاتصال على الشبكة المحلية"
       },
       "tlsTricks": {
         "title": "حيل TLS",
@@ -521,7 +521,7 @@
     },
     "warpLicense": {
       "title": "موافقة Cloudflare WARP",
-      "description(rich)": "Cloudflare WARP هو مزود VPN مجاني لـ WireGuard. بتفعيل هذا الخيار، فإنك توافق على ${tos(شروط الخدمة)} و ${privacy(سياسة الخصوصية)} الخاصة بـ Cloudflare WARP."
+      "description(rich)": "Cloudflare WARP هو مزود مجاني لـ WireGuard. بتفعيل هذا الخيار، فإنك توافق على ${tos(شروط الخدمة)} و ${privacy(سياسة الخصوصية)} الخاصة بـ Cloudflare WARP."
     },
     "newVersion": {
       "title": "تحديث متاح",
@@ -565,7 +565,7 @@
     },
     "noActiveProfile": {
       "title": "اختر ملفًا شخصيًا",
-      "msg": "للبدء، قم بإضافة ملف اتصال يحتوي على تفاصيل اتصال VPN الخاصة بك.\n\nأليس لديك خادم VPN بعد؟ لا تقلق، اتبع الدليل أدناه لإعداد واحد بسرعة ومجانًا.",
+      "msg": "للبدء، قم بإضافة ملف اتصال يحتوي على تفاصيل اتصال الخاصة بك.\n\nأليس لديك خادم بعد؟ لا تقلق، اتبع الدليل أدناه لإعداد واحد بسرعة ومجانًا.",
       "helpBtn": {
         "label": "أرني كيف",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -630,14 +630,14 @@
     },
     "connectivity": {
       "unexpected": "فشل غير متوقع",
-      "missingVpnPermission": "إذن الـ VPN مفقود",
+      "missingVpnPermission": "إذن الاتصال مفقود",
       "missingNotificationPermission": "إذن الإشعارات مفقود",
       "core": "خطأ في النواة"
     },
     "singbox": {
       "serviceNotRunning": "الخدمة لا تعمل",
       "missingPrivilege": "صلاحيات مطلوبة",
-      "missingPrivilegeMsg": "وضع الـ VPN يتطلب صلاحيات المسؤول. يرجى إعادة تشغيل التطبيق كمسؤول أو تغيير وضع الخدمة.",
+      "missingPrivilegeMsg": "وضع Tunnel يتطلب صلاحيات المسؤول. يرجى إعادة تشغيل التطبيق كمسؤول أو تغيير وضع الخدمة.",
       "invalidConfigOptions": "خيارات تكوين غير صالحة",
       "invalidConfig": "تكوين غير صالح"
     },

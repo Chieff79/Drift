@@ -5,8 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'notification_service.g.dart';
 
-const _channelId = 'drift_vpn_status';
-const _channelName = 'VPN Status';
+const _channelId = 'drift_status';
+const _channelName = 'Connection Status';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
@@ -45,7 +45,7 @@ class NotificationService {
   Future<void> showConnected(String serverName) async {
     await _plugin.show(
       1,
-      'Drift VPN',
+      'Drift',
       'Подключено — $serverName',
       NotificationDetails(
         android: AndroidNotificationDetails(
@@ -75,7 +75,7 @@ class NotificationService {
     await _plugin.cancel(1);
     await _plugin.show(
       2,
-      'Drift VPN',
+      'Drift',
       'Отключено',
       NotificationDetails(
         android: AndroidNotificationDetails(
@@ -103,7 +103,7 @@ class NotificationService {
     await _plugin.cancel(1);
     await _plugin.show(
       3,
-      'Drift VPN — Ошибка',
+      'Drift — Ошибка',
       error,
       NotificationDetails(
         android: AndroidNotificationDetails(

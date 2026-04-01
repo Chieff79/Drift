@@ -1,6 +1,6 @@
 {
   "common": {
-    "appTitle": "Drift VPN",
+    "appTitle": "Drift",
     "start": "开始",
     "version": "版本",
     "ok": "确定",
@@ -88,7 +88,7 @@
   "intro": {
     "banner": "畅享无限制网络的所需一切",
     "termsAndPolicyCaution(rich)": "继续即表示您同意 ${tap(@:pages.about.termsAndConditions)}",
-    "info(rich)": "由 Drift VPN 用 ❤️ 制作 - ${tap_source(开源)} (${tap_license(许可证)})"
+    "info(rich)": "由 DriftWay 用 ❤️ 制作 - ${tap_source(开源)} (${tap_license(许可证)})"
   },
   "pages": {
     "home": {
@@ -183,7 +183,7 @@
     },
     "settings": {
       "title": "设置",
-      "resetTunnel": "重置 VPN 配置文件",
+      "resetTunnel": "重置连接配置文件",
       "options": {
         "import": {
           "clipboard": "从剪贴板导入选项",
@@ -216,7 +216,7 @@
         "autoStart": "开机自启",
         "silentStart": "静默启动",
         "ignoreBatteryOptimizations": "忽略电池优化",
-        "ignoreBatteryOptimizationsMsg": "移除限制以获得最佳 VPN 性能",
+        "ignoreBatteryOptimizationsMsg": "移除限制以获得最佳应用性能",
         "memoryLimit": "内存限制",
         "memoryLimitMsg": "如果您遇到内存不足错误或应用频繁崩溃，请启用此选项",
         "debugMode": "调试模式",
@@ -410,14 +410,14 @@
         "serviceModes": {
           "proxy": "仅代理服务",
           "systemProxy": "设置系统代理",
-          "tun": "VPN",
-          "tunService": "VPN 服务"
+          "tun": "Tunnel",
+          "tunService": "Tunnel 服务"
         },
         "shortServiceModes": {
           "proxy": "代理",
           "systemProxy": "系统代理",
-          "tun": "VPN",
-          "tunService": "VPN 服务"
+          "tun": "Tunnel",
+          "tunService": "Tunnel 服务"
         },
         "strictRoute": "严格路由",
         "tunImplementation": "TUN 实现",
@@ -515,7 +515,7 @@
     },
     "warpLicense": {
       "title": "Cloudflare WARP 同意书",
-      "description(rich)": "Cloudflare WARP 是一个免费的 WireGuard VPN 提供商。启用此选项即表示您同意 Cloudflare WARP 的 ${tos(服务条款)} 和 ${privacy(隐私政策)}。"
+      "description(rich)": "Cloudflare WARP 是一个免费的 WireGuard 提供商。启用此选项即表示您同意 Cloudflare WARP 的 ${tos(服务条款)} 和 ${privacy(隐私政策)}。"
     },
     "newVersion": {
       "title": "有可用更新",
@@ -559,7 +559,7 @@
     },
     "noActiveProfile": {
       "title": "选择一个配置文件",
-      "msg": "让我们从添加一个包含您 VPN 连接详细信息的配置文件开始。\n\n还没有 VPN 服务器？别担心，按照下面的教程，您可以快速免费地设置一个。",
+      "msg": "让我们从添加一个包含您 连接详细信息的配置文件开始。\n\n还没有 服务器？别担心，按照下面的教程，您可以快速免费地设置一个。",
       "helpBtn": {
         "label": "告诉我如何操作",
         "url": "https://62.60.235.92:8443/dashboard/"
@@ -624,14 +624,14 @@
     },
     "connectivity": {
       "unexpected": "意外失败",
-      "missingVpnPermission": "缺少 VPN 权限",
+      "missingVpnPermission": "缺少权限",
       "missingNotificationPermission": "缺少通知权限",
       "core": "核心错误"
     },
     "singbox": {
       "serviceNotRunning": "服务未运行",
       "missingPrivilege": "缺少权限",
-      "missingPrivilegeMsg": "VPN 模式需要管理员权限。请以管理员身份重新启动应用，或更改服务模式。",
+      "missingPrivilegeMsg": "Tunnel 模式需要管理员权限。请以管理员身份重新启动应用，或更改服务模式。",
       "invalidConfigOptions": "配置选项无效",
       "invalidConfig": "配置无效"
     },

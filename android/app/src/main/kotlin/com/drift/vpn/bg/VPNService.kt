@@ -92,7 +92,7 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
 //        service.fileDescriptor?.close()
 
         val builder = Builder()
-            .setSession("Drift VPN")
+            .setSession("Drift")
             .setMtu(options.mtu)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
