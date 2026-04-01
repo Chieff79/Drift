@@ -1,18 +1,13 @@
 import 'package:circle_flags/circle_flags.dart';
-import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
-import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/home/notifier/real_ip_notifier.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'dart:math';
 import 'package:hiddify/features/home/widget/globe_widget.dart';
-import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
-import 'package:hiddify/features/profile/widget/profile_tile.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -25,7 +20,6 @@ class HomePage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final t = ref.watch(translationsProvider).requireValue;
-    final activeProfile = ref.watch(activeProfileProvider);
     final connectionStatus = ref.watch(connectionNotifierProvider);
     final isConnected = connectionStatus.valueOrNull == const Connected();
     final isConnecting = connectionStatus.valueOrNull?.isSwitching ?? false;
@@ -50,37 +44,9 @@ class HomePage extends HookConsumerWidget {
           children: [
             Image.asset('assets/images/drift_logo.png', height: 24),
             const Gap(8),
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: t.common.appTitle),
-                  const TextSpan(text: ' '),
-                  const WidgetSpan(child: AppVersionLabel(), alignment: PlaceholderAlignment.middle),
-                ],
-              ),
-            ),
+            Text(t.common.appTitle),
           ],
         ),
-        actions: [
-          Semantics(
-            key: const ValueKey('profile_quick_settings'),
-            label: t.pages.home.quickSettings,
-            child: IconButton(
-              icon: Icon(Icons.tune_rounded, color: theme.colorScheme.primary),
-              onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showQuickSettings(),
-            ),
-          ),
-          const Gap(8),
-          Semantics(
-            key: const ValueKey('profile_add_button'),
-            label: t.pages.profiles.add,
-            child: IconButton(
-              icon: Icon(Icons.add_rounded, color: theme.colorScheme.primary),
-              onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(),
-            ),
-          ),
-          const Gap(8),
-        ],
       ),
       body: GestureDetector(
         onHorizontalDragUpdate: (details) {
@@ -111,17 +77,6 @@ class HomePage extends HookConsumerWidget {
                 slivers: [
                   MultiSliver(
                     children: [
-                      // Profile tile at top
-                      switch (activeProfile) {
-                        AsyncData(value: final profile?) => ProfileTile(
-                          profile: profile,
-                          isMain: true,
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          color: theme.colorScheme.surfaceContainer,
-                        ),
-                        _ => const Text(''),
-                      },
-
                       SliverFillRemaining(
                         hasScrollBody: false,
                         child: Column(
@@ -264,17 +219,6 @@ class _DisconnectedIpCard extends ConsumerWidget {
                     ),
                   ),
                 },
-                if (realIp.valueOrNull?.org != null) ...[
-                  const Gap(2),
-                  Text(
-                    realIp.value!.org!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: .5),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
               ],
             ),
           ),
@@ -311,9 +255,7 @@ class _ConnectedIpCard extends ConsumerWidget {
         ?? activeProxy.valueOrNull?.ipinfo.ip ?? '';
     final countryCode = vpnIpInfo.valueOrNull?.countryCode
         ?? activeProxy.valueOrNull?.ipinfo.countryCode ?? '';
-    final org = vpnIpInfo.valueOrNull?.org
-        ?? activeProxy.valueOrNull?.ipinfo.org ?? '';
-    final tagDisplay = activeProxy.valueOrNull?.tagDisplay ?? '';
+    // Protocol info hidden for clean UI
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -389,17 +331,6 @@ class _ConnectedIpCard extends ConsumerWidget {
                         textDirection: TextDirection.ltr,
                       )
                     : _ShimmerText(width: 120),
-                if (tagDisplay.isNotEmpty || org.isNotEmpty) ...[
-                  const Gap(2),
-                  Text(
-                    [if (tagDisplay.isNotEmpty) tagDisplay, if (org.isNotEmpty) org].join(' · '),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: .5),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
               ],
             ),
           ),
@@ -584,7 +515,6 @@ class _CompactVpnIpBar extends ConsumerWidget {
         ?? activeProxy.valueOrNull?.ipinfo.ip ?? '';
     final countryCode = vpnIpInfo.valueOrNull?.countryCode
         ?? activeProxy.valueOrNull?.ipinfo.countryCode ?? '';
-    final tagDisplay = activeProxy.valueOrNull?.tagDisplay ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -628,17 +558,6 @@ class _CompactVpnIpBar extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (tagDisplay.isNotEmpty) ...[
-              const Gap(6),
-              Text(
-                tagDisplay,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  fontSize: 9,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ],
         ),
       ),
@@ -712,35 +631,3 @@ class _ShimmerText extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  APP VERSION LABEL (unchanged from original)
-// ══════════════════════════════════════════════════════════════════════════════
-
-class AppVersionLabel extends HookConsumerWidget {
-  const AppVersionLabel({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = ref.watch(translationsProvider).requireValue;
-    final theme = Theme.of(context);
-    final version = ref.watch(appInfoProvider).requireValue.presentVersion;
-    if (version.isBlank) return const SizedBox();
-
-    return Semantics(
-      label: t.common.version,
-      button: false,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-        child: Text(
-          version,
-          textDirection: TextDirection.ltr,
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSecondaryContainer),
-        ),
-      ),
-    );
-  }
-}
