@@ -1,6 +1,7 @@
 import 'package:circle_flags/circle_flags.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
@@ -88,6 +89,14 @@ class HomePage extends HookConsumerWidget {
                             if (!isConnected) _IpStatusCard(isConnected: false),
 
                             const Spacer(),
+
+                            // ── Country selector button ────────────────────
+                            _CountrySelector(
+                              vpnCountryCode: vpnCountryCode,
+                              onTap: () => context.goNamed('countrySelection'),
+                            ),
+
+                            const Gap(16),
 
                             // ── Connection button ───────────────────────────
                             const ConnectionButton(),
@@ -628,6 +637,90 @@ class _ShimmerText extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
     );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  COUNTRY SELECTOR (tap to choose server country)
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _CountrySelector extends StatelessWidget {
+  const _CountrySelector({this.vpnCountryCode, required this.onTap});
+
+  final String? vpnCountryCode;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final code = vpnCountryCode ?? '';
+    final name = _countryName(code);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: .2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (code.isNotEmpty)
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircleFlag(code.toLowerCase(), size: 28),
+              )
+            else
+              Icon(
+                Icons.public_rounded,
+                size: 28,
+                color: theme.colorScheme.primary,
+              ),
+            const Gap(10),
+            Text(
+              name.isNotEmpty ? name : 'Выбрать страну',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Gap(6),
+            Icon(
+              Icons.expand_more_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: .5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _countryName(String code) {
+    const names = {
+      'RU': 'Россия',
+      'NL': 'Нидерланды',
+      'US': 'США',
+      'DE': 'Германия',
+      'FR': 'Франция',
+      'GB': 'Великобритания',
+      'UA': 'Украина',
+      'KZ': 'Казахстан',
+      'BY': 'Беларусь',
+      'TR': 'Турция',
+      'CN': 'Китай',
+      'JP': 'Япония',
+      'SG': 'Сингапур',
+      'FI': 'Финляндия',
+      'SE': 'Швеция',
+      'CH': 'Швейцария',
+    };
+    return names[code.toUpperCase()] ?? '';
   }
 }
 
