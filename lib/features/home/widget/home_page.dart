@@ -10,7 +10,11 @@ import 'package:hiddify/features/home/notifier/real_ip_notifier.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'dart:math';
 import 'package:hiddify/features/home/widget/globe_widget.dart';
+import 'package:hiddify/features/profile/model/profile_entity.dart';
+import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
+import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
+import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sliver_tools/sliver_tools.dart';
@@ -49,10 +53,14 @@ class HomePage extends HookConsumerWidget {
           ],
         ),
         actions: [
+          // ── Mini whitelist toggle ──
+          const _WhitelistChip(),
+          const Gap(4),
+          // ── Profiles / keys drawer ──
           IconButton(
-            icon: const Icon(Icons.add_link_rounded),
-            tooltip: 'Добавить подписку',
-            onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(),
+            icon: const Icon(Icons.key_rounded, size: 22),
+            tooltip: 'Ключи',
+            onPressed: () => _showProfilesDrawer(context, ref),
           ),
         ],
       ),
@@ -656,6 +664,256 @@ class _CountrySelector extends StatelessWidget {
       'CH': 'Швейцария',
     };
     return names[code.toUpperCase()] ?? '';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  WHITELIST MINI TOGGLE (AppBar chip)
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _WhitelistChip extends ConsumerWidget {
+  const _WhitelistChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(ConfigOptions.enableRuWhitelist);
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: () => ref.read(ConfigOptions.enableRuWhitelist.notifier).update(!enabled),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: enabled
+              ? const Color(0xFF30D158).withValues(alpha: 0.15)
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: enabled
+                ? const Color(0xFF30D158).withValues(alpha: 0.4)
+                : theme.colorScheme.outline.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              enabled ? Icons.shield_rounded : Icons.shield_outlined,
+              size: 14,
+              color: enabled ? const Color(0xFF30D158) : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            const Gap(4),
+            Text(
+              'БС',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: enabled ? const Color(0xFF30D158) : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  PROFILES DRAWER (slide-up menu with keys)
+// ══════════════════════════════════════════════════════════════════════════════
+
+void _showProfilesDrawer(BuildContext context, WidgetRef ref) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => const _ProfilesSheet(),
+  );
+}
+
+class _ProfilesSheet extends ConsumerWidget {
+  const _ProfilesSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final profiles = ref.watch(profilesNotifierProvider);
+    final activeProfile = ref.watch(activeProfileProvider);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.45,
+      minChildSize: 0.3,
+      maxChildSize: 0.8,
+      builder: (context, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // ── Handle bar ──
+            Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 8),
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // ── Header ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.key_rounded, size: 20, color: theme.colorScheme.primary),
+                  const Gap(10),
+                  Text('Ключи доступа', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  // Add key button
+                  IconButton(
+                    icon: Icon(Icons.add_circle_outline_rounded, color: theme.colorScheme.primary),
+                    tooltip: 'Добавить ключ',
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile();
+                    },
+                  ),
+                  // Refresh all button
+                  IconButton(
+                    icon: Icon(Icons.refresh_rounded, color: theme.colorScheme.primary),
+                    tooltip: 'Обновить все',
+                    onPressed: () {
+                      ref.invalidate(profilesNotifierProvider);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // ── Profile list ──
+            Expanded(
+              child: profiles.when(
+                data: (list) {
+                  if (list.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.vpn_key_off_rounded, size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
+                          const Gap(12),
+                          Text('Нет ключей', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                          const Gap(8),
+                          TextButton.icon(
+                            icon: const Icon(Icons.add_link_rounded),
+                            label: const Text('Добавить подписку'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile();
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final activeId = activeProfile.valueOrNull?.id;
+
+                  return ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: list.length,
+                    itemBuilder: (context, index) {
+                      final profile = list[index];
+                      final isActive = profile.id == activeId;
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                        child: Material(
+                          color: isActive
+                              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
+                              : theme.colorScheme.surfaceContainer,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () async {
+                              await ref.read(profilesNotifierProvider.notifier).selectActiveProfile(profile.id);
+                              if (context.mounted) Navigator.of(context).pop();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  // Active indicator
+                                  Container(
+                                    width: 8, height: 8,
+                                    decoration: BoxDecoration(
+                                      color: isActive ? const Color(0xFF30D158) : Colors.transparent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isActive
+                                            ? const Color(0xFF30D158)
+                                            : theme.colorScheme.outline.withValues(alpha: 0.3),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                  const Gap(12),
+                                  // Profile info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          profile.name,
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (profile is RemoteProfileEntity) ...[
+                                          const Gap(2),
+                                          Text(
+                                            _formatLastUpdate(profile.lastUpdate),
+                                            style: theme.textTheme.labelSmall?.copyWith(
+                                              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  // Check icon
+                                  if (isActive)
+                                    Icon(Icons.check_circle_rounded, color: const Color(0xFF30D158), size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                error: (e, _) => Center(child: Text('Ошибка загрузки')),
+                loading: () => const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatLastUpdate(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'только что';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} мин назад';
+    if (diff.inHours < 24) return '${diff.inHours} ч назад';
+    return '${diff.inDays} дн назад';
   }
 }
 
