@@ -20,6 +20,7 @@ import 'package:hiddify/features/connection/widget/connection_wrapper.dart';
 import 'package:hiddify/features/per_app_proxy/overview/per_app_proxy_service_notifier.dart';
 import 'package:hiddify/features/profile/notifier/profiles_update_notifier.dart';
 import 'package:hiddify/features/shortcut/shortcut_wrapper.dart';
+import 'package:hiddify/features/proxy/active/auto_failover_notifier.dart';
 import 'package:hiddify/features/system_tray/notifier/system_tray_notifier.dart';
 import 'package:hiddify/features/window/widget/window_wrapper.dart';
 import 'package:hiddify/hiddifycore/hiddify_core_service_provider.dart';
@@ -67,6 +68,7 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
     ref.listen(foregroundProfilesUpdateNotifierProvider, (_, _) {});
     if (PlatformUtils.isAndroid) ref.listen(perAppProxyServiceProvider, (_, _) {});
     if (PlatformUtils.isDesktop) ref.listen(systemTrayNotifierProvider, (_, _) {});
+    ref.listen(autoFailoverNotifierProvider, (_, _) {});
 
     // updating ActiveBreakpointNotifier value
     useEffect(() {

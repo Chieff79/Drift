@@ -228,6 +228,8 @@ abstract class ConfigOptions {
     mapTo: (value) => value.name,
   );
 
+  static final enableRuWhitelist = PreferencesNotifier.create<bool, bool>("enable-ru-whitelist", false);
+
   static final enableWarp = PreferencesNotifier.create<bool, bool>("enable-warp", false);
 
   static final warpDetourMode = PreferencesNotifier.create<WarpDetourMode, String>(
@@ -327,6 +329,7 @@ abstract class ConfigOptions {
     "clash-api-port": clashApiPort,
     "bypass-lan": bypassLan,
     "allow-connection-from-lan": allowConnectionFromLan,
+    "enable-ru-whitelist": enableRuWhitelist,
     // "enable-dns-routing": enableDnsRouting,
 
     // mux
@@ -363,47 +366,88 @@ abstract class ConfigOptions {
     "warp2.wireguard-config": warp2WireguardConfig,
   };
 
+  /// Predefined list of Russian domains that should bypass the tunnel
+  /// when the whitelist feature is enabled.
+  static const ruWhitelistDomains = [
+    // Banking
+    'domain:sberbank.ru',
+    'domain:online.sberbank.ru',
+    'domain:sberbank.com',
+    'domain:tinkoff.ru',
+    'domain:tbank.ru',
+    'domain:vtb.ru',
+    'domain:alfabank.ru',
+    'domain:alfadirect.ru',
+    'domain:raiffeisen.ru',
+    'domain:gazprombank.ru',
+    'domain:rosbank.ru',
+    'domain:open.ru',
+    'domain:sovcombank.ru',
+    'domain:psbank.ru',
+    'domain:mtsbank.ru',
+    'domain:uralsib.ru',
+    'domain:rshb.ru',
+    'domain:homecredit.ru',
+    'domain:pochta.bank',
+    'domain:ozon.bank',
+    'domain:yoomoney.ru',
+    // Government
+    'domain:gosuslugi.ru',
+    'domain:nalog.ru',
+    'domain:mos.ru',
+    'domain:pfr.gov.ru',
+    'domain:esia.gosuslugi.ru',
+    'domain:zakupki.gov.ru',
+    'domain:government.ru',
+    'domain:kremlin.ru',
+    'domain:mvd.ru',
+    'domain:fns.ru',
+    'domain:fssp.gov.ru',
+    'domain:rosreestr.gov.ru',
+    'domain:fss.ru',
+    // Payment systems
+    'domain:mir-platform.ru',
+    'domain:nspk.ru',
+    'domain:mirconnect.ru',
+    // Central Bank
+    'domain:cbr.ru',
+    // Telecom
+    'domain:megafon.ru',
+    'domain:mts.ru',
+    'domain:beeline.ru',
+    'domain:tele2.ru',
+    'domain:yota.ru',
+    // Popular services
+    'domain:yandex.ru',
+    'domain:yandex.net',
+    'domain:ya.ru',
+    'domain:mail.ru',
+    'domain:vk.com',
+    'domain:vk.ru',
+    'domain:ok.ru',
+    'domain:ozon.ru',
+    'domain:wildberries.ru',
+    'domain:avito.ru',
+    'domain:ria.ru',
+    'domain:rt.ru',
+    'domain:rostelecom.ru',
+    'domain:rutube.ru',
+    'domain:kinopoisk.ru',
+  ];
+
   static final singboxConfigOptions = Provider<SingboxConfigOption>((ref) {
     // final region = ref.watch(Preferences.region);
     final rules = <SingboxRule>[];
-    // final rules = switch (region) {
-    //   Region.ir => [
-    //       const SingboxRule(
-    //         domains: "domain:.ir,geosite:ir",
-    //         ip: "geoip:ir",
-    //         outbound: RuleOutbound.bypass,
-    //       ),
-    //     ],
-    //   Region.cn => [
-    //       const SingboxRule(
-    //         domains: "domain:.cn,geosite:cn",
-    //         ip: "geoip:cn",
-    //         outbound: RuleOutbound.bypass,
-    //       ),
-    //     ],
-    //   Region.ru => [
-    //       const SingboxRule(
-    //         domains: "domain:.ru",
-    //         ip: "geoip:ru",
-    //         outbound: RuleOutbound.bypass,
-    //       ),
-    //     ],
-    //   Region.af => [
-    //       const SingboxRule(
-    //         domains: "domain:.af,geosite:af",
-    //         ip: "geoip:af",
-    //         outbound: RuleOutbound.bypass,
-    //       ),
-    //     ],
-    //   Region.id => [
-    //       const SingboxRule(
-    //         domains: "domain:.id,geosite:id",
-    //         ip: "geoip:id",
-    //         outbound: RuleOutbound.bypass,
-    //       ),
-    //     ],
-    //   _ => <SingboxRule>[],
-    // };
+
+    // Russian whitelist: bypass tunnel for banking/government/payment domains
+    if (ref.watch(enableRuWhitelist)) {
+      rules.add(
+        SingboxRule(
+          domains: ruWhitelistDomains.join(','),
+          outbound: RuleOutbound.bypass,
+        ),
+      );
+    }
 
     final mode = ref.watch(serviceMode);
     // final reg = ref.watch(Preferences.region.notifier).raw();

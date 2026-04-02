@@ -39,7 +39,7 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
         if (next case AsyncData(value: final Connected _)) {
           await ref.read(hapticServiceProvider.notifier).heavyImpact();
           final profile = ref.read(activeProfileProvider).asData?.value;
-          final serverName = profile?.name ?? 'Drift VPN';
+          final serverName = profile?.name ?? 'Drift';
           await notifications.showConnected(serverName);
 
           if (Platform.isAndroid && !ref.read(Preferences.storeReviewedByUser)) {

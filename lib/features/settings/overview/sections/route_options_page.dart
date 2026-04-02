@@ -87,8 +87,15 @@ class RouteOptionsPage extends HookConsumerWidget {
             onChanged: ref.read(ConfigOptions.blockAds.notifier).update,
           ),
           SwitchListTile.adaptive(
+            title: const Text('Белые списки (РФ)'),
+            subtitle: const Text('Банки, госсервисы, платёжные системы напрямую'),
+            secondary: const Icon(Icons.shield_outlined),
+            value: ref.watch(ConfigOptions.enableRuWhitelist),
+            onChanged: ref.read(ConfigOptions.enableRuWhitelist.notifier).update,
+          ),
+          SwitchListTile.adaptive(
             title: Text(t.pages.settings.routing.bypassLan),
-            subtitle: const Text('Не направлять локальный трафик через VPN'),
+            subtitle: const Text('Не направлять локальный трафик через туннель'),
             secondary: const Icon(Icons.call_split_rounded),
             value: ref.watch(ConfigOptions.bypassLan),
             onChanged: ref.read(ConfigOptions.bypassLan.notifier).update,
