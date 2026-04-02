@@ -394,7 +394,7 @@ abstract class ConfigOptions {
     if (ref.watch(enableRuWhitelist)) {
       rules.add(
         SingboxRule(
-          domains: ruWhitelistDomains.join(','),
+          domains: ruWhitelistDomains,
           outbound: RuleOutbound.bypass,
         ),
       );
