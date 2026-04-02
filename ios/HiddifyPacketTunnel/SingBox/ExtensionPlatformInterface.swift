@@ -344,8 +344,7 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
         #if os(tvOS)
             return false
         #else
-            return false
-//            return tunnel.overridePreferences?.includeAllNetworks ?? false
+            return true
         #endif
     }
 

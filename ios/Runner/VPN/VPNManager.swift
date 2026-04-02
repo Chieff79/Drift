@@ -101,6 +101,8 @@ class VPNManager: ObservableObject {
             let `protocol` = NETunnelProviderProtocol()
             `protocol`.providerBundleIdentifier = Bundle.main.baseBundleIdentifier + ".tunnel"
             `protocol`.serverAddress = "localhost"
+            `protocol`.includeAllNetworks = true
+            `protocol`.excludeLocalNetworks = true
             newManager.protocolConfiguration = `protocol`
             newManager.localizedDescription = "Drift"
             try await newManager.saveToPreferences()
@@ -113,11 +115,18 @@ class VPNManager: ObservableObject {
     
     private func enableVPNManager() async throws {
         manager.isEnabled = true
-        // On-demand disabled: allows iOS Control Center VPN toggle to work properly.
-        // With on-demand enabled, iOS auto-reconnects immediately after user disconnects
-        // from Control Center, making the toggle appear broken.
-        manager.isOnDemandEnabled = false
-        manager.onDemandRules = []
+
+        // On-demand: auto-reconnect when connection drops
+        let connectRule = NEOnDemandRuleConnect()
+        connectRule.interfaceTypeMatch = .any
+        manager.isOnDemandEnabled = true
+        manager.onDemandRules = [connectRule]
+
+        // Keep tunnel alive across network changes
+        if let proto = manager.protocolConfiguration as? NETunnelProviderProtocol {
+            proto.includeAllNetworks = true
+            proto.excludeLocalNetworks = true
+        }
 
         do {
             try await manager.saveToPreferences()
