@@ -368,71 +368,22 @@ abstract class ConfigOptions {
 
   /// Predefined list of Russian domains that should bypass the tunnel
   /// when the whitelist feature is enabled.
+  /// Uses domain_suffix to bypass ALL .ru/.su/.рф domains so Russian sites
+  /// don't detect the tunnel connection.
   static const ruWhitelistDomains = [
-    // Banking
-    'domain:sberbank.ru',
-    'domain:online.sberbank.ru',
-    'domain:sberbank.com',
-    'domain:tinkoff.ru',
+    // All Russian TLDs — bypass entire zone
+    'domain_suffix:.ru',
+    'domain_suffix:.su',
+    'domain_suffix:.xn--p1ai', // .рф (punycode)
+    // Russian services on non-.ru domains
     'domain:tbank.ru',
-    'domain:vtb.ru',
-    'domain:alfabank.ru',
-    'domain:alfadirect.ru',
-    'domain:raiffeisen.ru',
-    'domain:gazprombank.ru',
-    'domain:rosbank.ru',
-    'domain:open.ru',
-    'domain:sovcombank.ru',
-    'domain:psbank.ru',
-    'domain:mtsbank.ru',
-    'domain:uralsib.ru',
-    'domain:rshb.ru',
-    'domain:homecredit.ru',
+    'domain:vk.com',
+    'domain:ok.ru',
     'domain:pochta.bank',
     'domain:ozon.bank',
-    'domain:yoomoney.ru',
-    // Government
-    'domain:gosuslugi.ru',
-    'domain:nalog.ru',
-    'domain:mos.ru',
-    'domain:pfr.gov.ru',
-    'domain:esia.gosuslugi.ru',
-    'domain:zakupki.gov.ru',
-    'domain:government.ru',
-    'domain:kremlin.ru',
-    'domain:mvd.ru',
-    'domain:fns.ru',
-    'domain:fssp.gov.ru',
-    'domain:rosreestr.gov.ru',
-    'domain:fss.ru',
-    // Payment systems
-    'domain:mir-platform.ru',
-    'domain:nspk.ru',
-    'domain:mirconnect.ru',
-    // Central Bank
-    'domain:cbr.ru',
-    // Telecom
-    'domain:megafon.ru',
-    'domain:mts.ru',
-    'domain:beeline.ru',
-    'domain:tele2.ru',
-    'domain:yota.ru',
-    // Popular services
-    'domain:yandex.ru',
     'domain:yandex.net',
-    'domain:ya.ru',
-    'domain:mail.ru',
-    'domain:vk.com',
-    'domain:vk.ru',
-    'domain:ok.ru',
-    'domain:ozon.ru',
-    'domain:wildberries.ru',
-    'domain:avito.ru',
-    'domain:ria.ru',
-    'domain:rt.ru',
-    'domain:rostelecom.ru',
-    'domain:rutube.ru',
-    'domain:kinopoisk.ru',
+    'domain:yandex.com',
+    'domain:sberbank.com',
   ];
 
   static final singboxConfigOptions = Provider<SingboxConfigOption>((ref) {

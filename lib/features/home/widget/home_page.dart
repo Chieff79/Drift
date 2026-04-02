@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/home/notifier/real_ip_notifier.dart';
@@ -19,7 +20,6 @@ class HomePage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final t = ref.watch(translationsProvider).requireValue;
     final connectionStatus = ref.watch(connectionNotifierProvider);
     final isConnected = connectionStatus.valueOrNull == const Connected();
@@ -48,6 +48,13 @@ class HomePage extends HookConsumerWidget {
             Text(t.common.appTitle),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_link_rounded),
+            tooltip: 'Добавить подписку',
+            onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(),
+          ),
+        ],
       ),
       body: GestureDetector(
         onHorizontalDragUpdate: (details) {
@@ -85,8 +92,8 @@ class HomePage extends HookConsumerWidget {
                           children: [
                             const Gap(8),
 
-                            // ── IP Status Card (disconnected only — shows real IP) ──
-                            if (!isConnected) _IpStatusCard(isConnected: false),
+                            // ── IP Status Card (always visible — shows real or protected IP) ──
+                            _IpStatusCard(isConnected: isConnected),
 
                             const Spacer(),
 
@@ -105,11 +112,6 @@ class HomePage extends HookConsumerWidget {
 
                             // ── City A → City B row ────────────────────────
                             if (isConnected) const _CityRouteRow(),
-
-                            const Gap(12),
-
-                            // ── Protected IP (compact, at bottom) ─────────────────
-                            if (isConnected) const _CompactVpnIpBar(),
 
                             const Gap(8),
                           ],
@@ -488,7 +490,7 @@ class _LocationChip extends StatelessWidget {
           )
         else
           Icon(
-            isSource ? Icons.person_pin_circle_outlined : Icons.vpn_lock_rounded,
+            isSource ? Icons.person_pin_circle_outlined : Icons.shield_rounded,
             size: 28,
             color: isSource ? theme.colorScheme.onSurface.withValues(alpha: .4) : theme.colorScheme.primary,
           ),
@@ -503,73 +505,6 @@ class _LocationChip extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  COMPACT PROTECTED IP BAR (bottom)
-// ══════════════════════════════════════════════════════════════════════════════
-
-class _CompactVpnIpBar extends ConsumerWidget {
-  const _CompactVpnIpBar();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final activeProxy = ref.watch(activeProxyNotifierProvider);
-    final vpnIpInfo = ref.watch(ipInfoNotifierProvider);
-
-    final vpnIp = vpnIpInfo.valueOrNull?.ip
-        ?? activeProxy.valueOrNull?.ipinfo.ip ?? '';
-    final countryCode = vpnIpInfo.valueOrNull?.countryCode
-        ?? activeProxy.valueOrNull?.ipinfo.countryCode ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF30D158).withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.shield_rounded, size: 14,
-                color: const Color(0xFF30D158).withValues(alpha: 0.7)),
-            const Gap(6),
-            Text(
-              'Защищённый IP',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: const Color(0xFF30D158),
-                fontWeight: FontWeight.w600,
-                fontSize: 10,
-              ),
-            ),
-            const Gap(8),
-            if (countryCode.isNotEmpty) ...[
-              SizedBox(
-                width: 16, height: 16,
-                child: CircleFlag(countryCode.toLowerCase(), size: 16),
-              ),
-              const Gap(6),
-            ],
-            Expanded(
-              child: Text(
-                vpnIp.isNotEmpty ? vpnIp : '—',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 11,
-                  letterSpacing: 0.2,
-                ),
-                textDirection: TextDirection.ltr,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
