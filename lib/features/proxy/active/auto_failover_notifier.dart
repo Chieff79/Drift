@@ -14,8 +14,8 @@ part 'auto_failover_notifier.g.dart';
 @Riverpod(keepAlive: true)
 class AutoFailoverNotifier extends _$AutoFailoverNotifier with AppLogger {
   Timer? _healthCheckTimer;
-  static const _checkInterval = Duration(seconds: 30);
-  static const _failoverDelay = 65000; // ms, considered timeout
+  static const _checkInterval = Duration(seconds: 10);
+  static const _failoverDelay = 10000; // ms, considered timeout
 
   @override
   Future<void> build() async {

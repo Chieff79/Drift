@@ -56,7 +56,7 @@ abstract class ConfigOptions {
 
   static final remoteDnsAddress = PreferencesNotifier.create<String, String>(
     "remote-dns-address",
-    "tcp://8.8.8.8",
+    "https://1.1.1.1/dns-query",
     possibleValues: List.of([
       "local",
       // "udp://223.5.5.5",
@@ -80,7 +80,7 @@ abstract class ConfigOptions {
 
   static final directDnsAddress = PreferencesNotifier.create<String, String>(
     "direct-dns-address",
-    "udp://1.1.1.1",
+    "https://1.1.1.1/dns-query",
     possibleValues: List.of([
       "local",
       "udp://223.5.5.5",
@@ -178,7 +178,7 @@ abstract class ConfigOptions {
 
   static final independentDnsCache = PreferencesNotifier.create<bool, bool>("independent-dns-cache", true);
 
-  static final enableTlsFragment = PreferencesNotifier.create<bool, bool>("enable-tls-fragment", false);
+  static final enableTlsFragment = PreferencesNotifier.create<bool, bool>("enable-tls-fragment", true);
 
   static final fragmentPackets = PreferencesNotifier.create<String, String>(
     "fragment-packets",
@@ -200,9 +200,9 @@ abstract class ConfigOptions {
     mapTo: const OptionalRangeJsonConverter().toJson,
   );
 
-  static final enableTlsMixedSniCase = PreferencesNotifier.create<bool, bool>("enable-tls-mixed-sni-case", false);
+  static final enableTlsMixedSniCase = PreferencesNotifier.create<bool, bool>("enable-tls-mixed-sni-case", true);
 
-  static final enableTlsPadding = PreferencesNotifier.create<bool, bool>("enable-tls-padding", false);
+  static final enableTlsPadding = PreferencesNotifier.create<bool, bool>("enable-tls-padding", true);
 
   static final tlsPaddingSize = PreferencesNotifier.create<OptionalRange, String>(
     "tls-padding-size",
