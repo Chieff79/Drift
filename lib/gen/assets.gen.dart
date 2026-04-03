@@ -43,12 +43,28 @@ class $AssetsImagesGen {
   AssetGenImage get trayIconConnectedPng =>
       const AssetGenImage('assets/images/tray_icon_connected.png');
 
+  /// File path: assets/images/tray_icon_connected_template.png
+  AssetGenImage get trayIconConnectedTemplate =>
+      const AssetGenImage('assets/images/tray_icon_connected_template.png');
+
+  /// File path: assets/images/tray_icon_connected_template@2x.png
+  AssetGenImage get trayIconConnectedTemplate2x =>
+      const AssetGenImage('assets/images/tray_icon_connected_template@2x.png');
+
   /// File path: assets/images/tray_icon_dark.ico
   String get trayIconDarkIco => 'assets/images/tray_icon_dark.ico';
 
   /// File path: assets/images/tray_icon_dark.png
   AssetGenImage get trayIconDarkPng =>
       const AssetGenImage('assets/images/tray_icon_dark.png');
+
+  /// File path: assets/images/tray_icon_dark_template.png
+  AssetGenImage get trayIconDarkTemplate =>
+      const AssetGenImage('assets/images/tray_icon_dark_template.png');
+
+  /// File path: assets/images/tray_icon_dark_template@2x.png
+  AssetGenImage get trayIconDarkTemplate2x =>
+      const AssetGenImage('assets/images/tray_icon_dark_template@2x.png');
 
   /// File path: assets/images/tray_icon_disconnected.ico
   String get trayIconDisconnectedIco =>
@@ -58,17 +74,22 @@ class $AssetsImagesGen {
   AssetGenImage get trayIconDisconnectedPng =>
       const AssetGenImage('assets/images/tray_icon_disconnected.png');
 
-  /// File path: assets/images/tray_icon_template.png (macOS menu bar)
-  AssetGenImage get trayIconTemplatePng =>
+  /// File path: assets/images/tray_icon_disconnected_template.png
+  AssetGenImage get trayIconDisconnectedTemplate =>
+      const AssetGenImage('assets/images/tray_icon_disconnected_template.png');
+
+  /// File path: assets/images/tray_icon_disconnected_template@2x.png
+  AssetGenImage get trayIconDisconnectedTemplate2x => const AssetGenImage(
+    'assets/images/tray_icon_disconnected_template@2x.png',
+  );
+
+  /// File path: assets/images/tray_icon_template.png
+  AssetGenImage get trayIconTemplate =>
       const AssetGenImage('assets/images/tray_icon_template.png');
 
-  /// File path: assets/images/tray_icon_connected_template.png (macOS menu bar)
-  AssetGenImage get trayIconConnectedTemplatePng =>
-      const AssetGenImage('assets/images/tray_icon_connected_template.png');
-
-  /// File path: assets/images/tray_icon_disconnected_template.png (macOS menu bar)
-  AssetGenImage get trayIconDisconnectedTemplatePng =>
-      const AssetGenImage('assets/images/tray_icon_disconnected_template.png');
+  /// File path: assets/images/tray_icon_template@2x.png
+  AssetGenImage get trayIconTemplate2x =>
+      const AssetGenImage('assets/images/tray_icon_template@2x.png');
 
   /// File path: assets/images/world_map.png
   AssetGenImage get worldMap =>
@@ -83,10 +104,18 @@ class $AssetsImagesGen {
     trayIconPng,
     trayIconConnectedIco,
     trayIconConnectedPng,
+    trayIconConnectedTemplate,
+    trayIconConnectedTemplate2x,
     trayIconDarkIco,
     trayIconDarkPng,
+    trayIconDarkTemplate,
+    trayIconDarkTemplate2x,
     trayIconDisconnectedIco,
     trayIconDisconnectedPng,
+    trayIconDisconnectedTemplate,
+    trayIconDisconnectedTemplate2x,
+    trayIconTemplate,
+    trayIconTemplate2x,
     worldMap,
   ];
 }

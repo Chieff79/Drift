@@ -829,67 +829,161 @@ class _ProfilesSheet extends ConsumerWidget {
                       final profile = list[index];
                       final isActive = profile.id == activeId;
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-                        child: Material(
-                          color: isActive
-                              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-                              : theme.colorScheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(14),
-                          child: InkWell(
+                      return Dismissible(
+                        key: ValueKey(profile.id),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (_) async {
+                          return await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Удалить ключ?'),
+                              content: Text('Удалить "${profile.name}"?'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: Text('Удалить', style: TextStyle(color: theme.colorScheme.error)),
+                                ),
+                              ],
+                            ),
+                          ) ?? false;
+                        },
+                        onDismissed: (_) {
+                          ref.read(profilesNotifierProvider.notifier).deleteProfile(profile);
+                        },
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 24),
+                          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.error.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(14),
-                            onTap: () async {
-                              await ref.read(profilesNotifierProvider.notifier).selectActiveProfile(profile.id);
-                              if (context.mounted) Navigator.of(context).pop();
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              child: Row(
-                                children: [
-                                  // Active indicator
-                                  Container(
-                                    width: 8, height: 8,
-                                    decoration: BoxDecoration(
-                                      color: isActive ? const Color(0xFF30D158) : Colors.transparent,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isActive
-                                            ? const Color(0xFF30D158)
-                                            : theme.colorScheme.outline.withValues(alpha: 0.3),
-                                        width: 1.5,
+                          ),
+                          child: Icon(Icons.delete_outline_rounded, color: theme.colorScheme.error),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                          child: Material(
+                            color: isActive
+                                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
+                                : theme.colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(14),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () async {
+                                await ref.read(profilesNotifierProvider.notifier).selectActiveProfile(profile.id);
+                                if (context.mounted) Navigator.of(context).pop();
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    // Active indicator
+                                    Container(
+                                      width: 8, height: 8,
+                                      decoration: BoxDecoration(
+                                        color: isActive ? const Color(0xFF30D158) : Colors.transparent,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isActive
+                                              ? const Color(0xFF30D158)
+                                              : theme.colorScheme.outline.withValues(alpha: 0.3),
+                                          width: 1.5,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const Gap(12),
-                                  // Profile info
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          profile.name,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        if (profile is RemoteProfileEntity) ...[
-                                          const Gap(2),
+                                    const Gap(12),
+                                    // Profile info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            _formatLastUpdate(profile.lastUpdate),
-                                            style: theme.textTheme.labelSmall?.copyWith(
-                                              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                            profile.name,
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                                             ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
+                                          if (profile is RemoteProfileEntity) ...[
+                                            const Gap(2),
+                                            Text(
+                                              _formatLastUpdate(profile.lastUpdate),
+                                              style: theme.textTheme.labelSmall?.copyWith(
+                                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                              ),
+                                            ),
+                                          ],
                                         ],
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                  // Check icon
-                                  if (isActive)
-                                    Icon(Icons.check_circle_rounded, color: const Color(0xFF30D158), size: 20),
-                                ],
+                                    // Rename button
+                                    IconButton(
+                                      icon: Icon(Icons.edit_outlined, size: 18,
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                      padding: EdgeInsets.zero,
+                                      onPressed: () async {
+                                        final controller = TextEditingController(text: profile.name);
+                                        final newName = await showDialog<String>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text('Переименовать'),
+                                            content: TextField(
+                                              controller: controller,
+                                              autofocus: true,
+                                              decoration: const InputDecoration(
+                                                labelText: 'Название',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                              onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+                                            ),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                                                child: const Text('Сохранить'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (newName != null && newName.isNotEmpty && newName != profile.name) {
+                                          await ref.read(profilesNotifierProvider.notifier).renameProfile(profile.id, newName);
+                                        }
+                                      },
+                                    ),
+                                    // Delete button
+                                    IconButton(
+                                      icon: Icon(Icons.delete_outline_rounded, size: 18,
+                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                      padding: EdgeInsets.zero,
+                                      onPressed: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: const Text('Удалить ключ?'),
+                                            content: Text('Удалить "${profile.name}"?'),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx, true),
+                                                child: Text('Удалить', style: TextStyle(color: theme.colorScheme.error)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await ref.read(profilesNotifierProvider.notifier).deleteProfile(profile);
+                                        }
+                                      },
+                                    ),
+                                    // Check icon
+                                    if (isActive)
+                                      Icon(Icons.check_circle_rounded, color: const Color(0xFF30D158), size: 20),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

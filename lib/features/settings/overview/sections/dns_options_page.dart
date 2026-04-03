@@ -14,6 +14,14 @@ class DnsOptionsPage extends HookConsumerWidget {
       appBar: AppBar(title: const Text('DNS')),
       body: ListView(
         children: [
+          SwitchListTile.adaptive(
+            title: const Text('Блокировка рекламы'),
+            subtitle: const Text('Блокирует рекламу и трекеры через AdGuard DNS'),
+            secondary: const Icon(Icons.shield_rounded),
+            value: ref.watch(ConfigOptions.blockAds),
+            onChanged: ref.read(ConfigOptions.blockAds.notifier).update,
+          ),
+          const Divider(),
           ValuePreferenceWidget(
             value: ref.watch(ConfigOptions.remoteDnsAddress),
             icon: Icons.vpn_lock_rounded,
