@@ -384,6 +384,25 @@ abstract class ConfigOptions {
     'domain:yandex.net',
     'domain:yandex.com',
     'domain:sberbank.com',
+    // IP checker services — bypass so sites don't detect tunnel
+    // (JS on .ru pages calls these APIs to check user IP)
+    'domain:api.ipify.org',
+    'domain:ipify.org',
+    'domain:ident.me',
+    'domain:whoer.net',
+    'domain:2ip.ru',
+    'domain:ip-api.com',
+    'domain:ipinfo.io',
+    'domain:ipapi.co',
+    'domain:checkip.amazonaws.com',
+    'domain:icanhazip.com',
+    'domain:ifconfig.me',
+    'domain:myip.com',
+    'domain:ip.sb',
+    'domain:api.my-ip.io',
+    'domain:ipwhois.io',
+    'domain:ipgeolocation.io',
+    'domain:api.db-ip.com',
   ];
 
   static final singboxConfigOptions = Provider<SingboxConfigOption>((ref) {
