@@ -93,7 +93,30 @@
   "pages": {
     "home": {
       "title": "Home",
-      "quickSettings": "Quick settings"
+      "quickSettings": "Quick settings",
+      "accessKeys": {
+        "title": "Access Keys",
+        "addKey": "Add key",
+        "refreshAll": "Refresh all",
+        "empty": "No keys",
+        "addSubscription": "Add subscription",
+        "deleteTitle": "Delete key?",
+        "deleteConfirm": "Delete \"${name}\"?",
+        "renameTitle": "Rename",
+        "nameLabel": "Name",
+        "errorLoading": "Loading error",
+        "justNow": "just now",
+        "minutesAgo": "${n} min ago",
+        "hoursAgo": "${n} h ago",
+        "daysAgo": "${n} d ago"
+      },
+      "whitelist": {
+        "badge": "WL",
+        "title": "Whitelist (RU)",
+        "subtitle": "Banks, government services, payment systems direct"
+      },
+      "connectFirst": "Connect to server first",
+      "connectFirstInfo": "Country selection available after connecting"
     },
     "proxies": {
       "title": "Proxies",

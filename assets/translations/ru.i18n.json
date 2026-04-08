@@ -97,7 +97,30 @@
   "pages": {
     "home": {
       "title": "Главная",
-      "quickSettings": "Быстрые настройки"
+      "quickSettings": "Быстрые настройки",
+      "accessKeys": {
+        "title": "Ключи доступа",
+        "addKey": "Добавить ключ",
+        "refreshAll": "Обновить все",
+        "empty": "Нет ключей",
+        "addSubscription": "Добавить подписку",
+        "deleteTitle": "Удалить ключ?",
+        "deleteConfirm": "Удалить \"${name}\"?",
+        "renameTitle": "Переименовать",
+        "nameLabel": "Название",
+        "errorLoading": "Ошибка загрузки",
+        "justNow": "только что",
+        "minutesAgo": "${n} мин назад",
+        "hoursAgo": "${n} ч назад",
+        "daysAgo": "${n} дн назад"
+      },
+      "whitelist": {
+        "badge": "БС",
+        "title": "Белые списки (РФ)",
+        "subtitle": "Банки, госсервисы, платёжные системы напрямую"
+      },
+      "connectFirst": "Сначала подключитесь к серверу",
+      "connectFirstInfo": "Выбор страны доступен после подключения"
     },
     "proxies": {
       "title": "Прокси",

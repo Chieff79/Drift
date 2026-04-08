@@ -58,13 +58,13 @@ class CountrySelectionPage extends HookConsumerWidget {
                 Icon(Icons.cloud_off_rounded, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .3)),
                 const Gap(16),
                 Text(
-                  'Сначала подключитесь к серверу',
+                  t.pages.home.connectFirst,
                   style: Theme.of(context).textTheme.titleMedium,
                   textAlign: TextAlign.center,
                 ),
                 const Gap(8),
                 Text(
-                  'Выбор страны доступен после подключения',
+                  t.pages.home.connectFirstInfo,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .5),
                   ),

@@ -87,8 +87,8 @@ class RouteOptionsPage extends HookConsumerWidget {
             onChanged: ref.read(ConfigOptions.blockAds.notifier).update,
           ),
           SwitchListTile.adaptive(
-            title: const Text('Белые списки (РФ)'),
-            subtitle: const Text('Банки, госсервисы, платёжные системы напрямую'),
+            title: Text(t.pages.home.whitelist.title),
+            subtitle: Text(t.pages.home.whitelist.subtitle),
             secondary: const Icon(Icons.shield_outlined),
             value: ref.watch(ConfigOptions.enableRuWhitelist),
             onChanged: ref.read(ConfigOptions.enableRuWhitelist.notifier).update,

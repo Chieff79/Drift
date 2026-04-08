@@ -705,7 +705,7 @@ class _WhitelistChip extends ConsumerWidget {
             ),
             const Gap(4),
             Text(
-              'БС',
+              ref.watch(translationsProvider).requireValue.pages.home.whitelist.badge,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -738,6 +738,8 @@ class _ProfilesSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final t = ref.watch(translationsProvider).requireValue;
+    final ak = t.pages.home.accessKeys;
     final profiles = ref.watch(profilesNotifierProvider);
     final activeProfile = ref.watch(activeProfileProvider);
 
@@ -770,12 +772,12 @@ class _ProfilesSheet extends ConsumerWidget {
                 children: [
                   Icon(Icons.key_rounded, size: 20, color: theme.colorScheme.primary),
                   const Gap(10),
-                  Text('Ключи доступа', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(ak.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const Spacer(),
                   // Add key button
                   IconButton(
                     icon: Icon(Icons.add_circle_outline_rounded, color: theme.colorScheme.primary),
-                    tooltip: 'Добавить ключ',
+                    tooltip: ak.addKey,
                     onPressed: () {
                       Navigator.of(context).pop();
                       ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile();
@@ -784,7 +786,7 @@ class _ProfilesSheet extends ConsumerWidget {
                   // Refresh all button
                   IconButton(
                     icon: Icon(Icons.refresh_rounded, color: theme.colorScheme.primary),
-                    tooltip: 'Обновить все',
+                    tooltip: ak.refreshAll,
                     onPressed: () {
                       ref.invalidate(profilesNotifierProvider);
                     },
@@ -804,11 +806,11 @@ class _ProfilesSheet extends ConsumerWidget {
                         children: [
                           Icon(Icons.vpn_key_off_rounded, size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
                           const Gap(12),
-                          Text('Нет ключей', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                          Text(ak.empty, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
                           const Gap(8),
                           TextButton.icon(
                             icon: const Icon(Icons.add_link_rounded),
-                            label: const Text('Добавить подписку'),
+                            label: Text(ak.addSubscription),
                             onPressed: () {
                               Navigator.of(context).pop();
                               ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile();
@@ -836,13 +838,13 @@ class _ProfilesSheet extends ConsumerWidget {
                           return await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text('Удалить ключ?'),
-                              content: Text('Удалить "${profile.name}"?'),
+                              title: Text(ak.deleteTitle),
+                              content: Text(ak.deleteConfirm(name: profile.name)),
                               actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.common.cancel)),
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: Text('Удалить', style: TextStyle(color: theme.colorScheme.error)),
+                                  child: Text(t.common.delete, style: TextStyle(color: theme.colorScheme.error)),
                                 ),
                               ],
                             ),
@@ -909,7 +911,7 @@ class _ProfilesSheet extends ConsumerWidget {
                                           if (profile is RemoteProfileEntity) ...[
                                             const Gap(2),
                                             Text(
-                                              _formatLastUpdate(profile.lastUpdate),
+                                              _formatLastUpdate(profile.lastUpdate, ak),
                                               style: theme.textTheme.labelSmall?.copyWith(
                                                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                                               ),
@@ -929,21 +931,21 @@ class _ProfilesSheet extends ConsumerWidget {
                                         final newName = await showDialog<String>(
                                           context: context,
                                           builder: (ctx) => AlertDialog(
-                                            title: const Text('Переименовать'),
+                                            title: Text(ak.renameTitle),
                                             content: TextField(
                                               controller: controller,
                                               autofocus: true,
-                                              decoration: const InputDecoration(
-                                                labelText: 'Название',
-                                                border: OutlineInputBorder(),
+                                              decoration: InputDecoration(
+                                                labelText: ak.nameLabel,
+                                                border: const OutlineInputBorder(),
                                               ),
                                               onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
                                             ),
                                             actions: [
-                                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+                                              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.common.cancel)),
                                               TextButton(
                                                 onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-                                                child: const Text('Сохранить'),
+                                                child: Text(t.common.save),
                                               ),
                                             ],
                                           ),
@@ -963,13 +965,13 @@ class _ProfilesSheet extends ConsumerWidget {
                                         final confirm = await showDialog<bool>(
                                           context: context,
                                           builder: (ctx) => AlertDialog(
-                                            title: const Text('Удалить ключ?'),
-                                            content: Text('Удалить "${profile.name}"?'),
+                                            title: Text(ak.deleteTitle),
+                                            content: Text(ak.deleteConfirm(name: profile.name)),
                                             actions: [
-                                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+                                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.common.cancel)),
                                               TextButton(
                                                 onPressed: () => Navigator.pop(ctx, true),
-                                                child: Text('Удалить', style: TextStyle(color: theme.colorScheme.error)),
+                                                child: Text(t.common.delete, style: TextStyle(color: theme.colorScheme.error)),
                                               ),
                                             ],
                                           ),
@@ -992,7 +994,7 @@ class _ProfilesSheet extends ConsumerWidget {
                     },
                   );
                 },
-                error: (e, _) => Center(child: Text('Ошибка загрузки')),
+                error: (e, _) => Center(child: Text(ak.errorLoading)),
                 loading: () => const Center(child: CircularProgressIndicator()),
               ),
             ),
@@ -1002,12 +1004,12 @@ class _ProfilesSheet extends ConsumerWidget {
     );
   }
 
-  String _formatLastUpdate(DateTime dt) {
+  String _formatLastUpdate(DateTime dt, TranslationsPagesHomeAccessKeysEn ak) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'только что';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} мин назад';
-    if (diff.inHours < 24) return '${diff.inHours} ч назад';
-    return '${diff.inDays} дн назад';
+    if (diff.inMinutes < 1) return ak.justNow;
+    if (diff.inMinutes < 60) return ak.minutesAgo(n: diff.inMinutes);
+    if (diff.inHours < 24) return ak.hoursAgo(n: diff.inHours);
+    return ak.daysAgo(n: diff.inDays);
   }
 }
 
