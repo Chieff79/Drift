@@ -1,7 +1,7 @@
-display_name: Drift VPN
+display_name: Drift
 package_name: drift-vpn
 maintainer:
-  name: Drift VPN
+  name: Drift
   email: support@drift-vpn.app
 
 priority: optional
@@ -11,27 +11,27 @@ essential: false
 icon: assets/images/source/ic_launcher_border.png
 
 postinstall_scripts:
-  - echo "Setting up Drift VPN..."
+  - echo "Setting up Drift..."
   - sudo sed -i '/^\[Desktop Entry\]/a StartupWMClass=com.drift.vpn' "/usr/share/applications/drift.desktop"
   - for user_dir in /home/*; do if [ -f "$user_dir/.local/share/applications/drift.desktop" ]; then rm -f "$user_dir/.local/share/applications/drift.desktop"; fi; done
   - update-desktop-database /usr/share/applications
-  - echo "Drift VPN is ready to use :)"
+  - echo "Drift is ready to use :)"
 
 postuninstall_scripts:
-  - echo "Removing Drift VPN user data..."
+  - echo "Removing Drift user data..."
   - for user_dir in /home/*; do if [ -d "$user_dir/.local/share/drift" ]; then rm -rf "$user_dir/.local/share/drift"; fi; done
   - rm -rf /root/.local/share/drift
-  - echo "Drift VPN data cleanup complete."
+  - echo "Drift data cleanup complete."
 
 keywords:
   - Drift
-  - VPN
+  - Privacy
   - Proxy
   - V2ray
   - VLESS
   - WireGuard
 
-generic_name: Drift VPN
+generic_name: Drift
 
 categories:
   - Network

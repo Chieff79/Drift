@@ -1,10 +1,10 @@
-# Privacy Policy — Drift VPN
+# Privacy Policy — Drift
 
 **Last updated: March 2026**
 
 ## Overview
 
-Drift VPN ("we", "our", "the app") is committed to protecting your privacy. This policy explains what data we collect and how we use it.
+Drift ("we", "our", "the app") is committed to protecting your privacy. This policy explains what data we collect and how we use it.
 
 ## Data We Do NOT Collect
 
@@ -22,8 +22,8 @@ If you enable analytics, we collect anonymous crash reports via Sentry to improv
 
 You can disable this in Settings → Analytics.
 
-### VPN Connection
-- Your VPN traffic passes through our servers (NL, RU, US, KZ)
+### Secure Connection
+- Your traffic passes through our servers (NL, RU, US, KZ)
 - We do not log traffic content or destinations
 - Temporary connection metadata (timestamps) may be kept for up to 24 hours for abuse prevention
 

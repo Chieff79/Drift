@@ -4,15 +4,15 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
 
-  <name>Drift VPN</name>
-  <summary>Fast &amp; Secure VPN for Linux</summary>
+  <name>Drift</name>
+  <summary>Fast &amp; Secure Connection</summary>
 
-  <developer_name>Drift VPN</developer_name>
+  <developer_name>Drift</developer_name>
   <update_contact>support@drift-vpn.app</update_contact>
 
   <description>
     <p>
-      Drift VPN is a fast and secure VPN client with built-in servers in NL, RU, and US.
+      Drift is a fast and secure connection tool with built-in servers in NL, RU, and US.
       Supports multiple protocols including VLESS, VMess, Shadowsocks, Trojan, Hysteria2,
       WireGuard, and more via the sing-box core.
     </p>
@@ -31,7 +31,7 @@
 
   <keywords>
     <keyword>Drift</keyword>
-    <keyword>VPN</keyword>
+    <keyword>Privacy</keyword>
     <keyword>Proxy</keyword>
     <keyword>V2Ray</keyword>
     <keyword>VLESS</keyword>
@@ -60,7 +60,7 @@
   <releases>
     <release version="4.1.2" date="2025-03-19">
       <description>
-        <p>Drift VPN — Fast &amp; Secure VPN with built-in NL, RU, US servers.</p>
+        <p>Drift — Fast &amp; Secure Connection with built-in NL, RU, US servers.</p>
       </description>
     </release>
   </releases>

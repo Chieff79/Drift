@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-description: Report a bug encountered while using Drift VPN
+description: Report a bug encountered while using Drift
 labels: ["bug"]
 body:
   - type: markdown
@@ -44,8 +44,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Drift VPN Version
-      description: "What version of Drift VPN are you using?"
+      label: Drift Version
+      description: "What version of Drift are you using?"
     validations:
       required: true
   - type: textarea

@@ -1,5 +1,5 @@
-display_name: Drift VPN
-publisher_display_name: Drift VPN
+display_name: Drift
+publisher_display_name: Drift
 identity_name: Drift.DriftVPN
 msix_version: 4.1.2.0
 logo_path: windows\runner\resources\app_icon.ico

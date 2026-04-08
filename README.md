@@ -1,12 +1,12 @@
-# Drift VPN
+# Drift
 
-Multi-platform VPN client for iOS, Android, macOS, Windows, and Linux.
+Multi-platform secure connection client for iOS, Android, macOS, Windows, and Linux.
 
 Built with Flutter, powered by [sing-box](https://github.com/SagerNet/sing-box).
 
 ## Features
 
-- One-tap VPN connection
+- One-tap secure connection
 - Speed test
 - Multiple server locations
 - Auto server selection
