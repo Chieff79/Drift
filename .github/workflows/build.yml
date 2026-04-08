@@ -226,9 +226,10 @@ jobs:
           echo "keyAlias=${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}" >> android/key.properties
 
       - name: Setup Windows Signing Properties
-        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') && secrets.WINDOWS_SIGNING_KEY != '' }}
+        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') }}
         continue-on-error: true
         run: |
+            if ([string]::IsNullOrEmpty("${{ secrets.WINDOWS_SIGNING_KEY }}")) { Write-Host "No signing key, skipping"; exit 0 }
             [IO.File]::WriteAllBytes("windows\sign.pfx", [Convert]::FromBase64String("${{ secrets.WINDOWS_SIGNING_KEY }}"))
             (Get-Content "windows\packaging\msix\make_config.yaml") -replace '^certificate_password:.*$', 'certificate_password: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}' | Set-Content "windows\packaging\msix\make_config.yaml"
         
@@ -274,8 +275,20 @@ jobs:
             exit 2
           }
 
+      - name: Check Windows Signing Key
+        id: check-win-sign
+        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') }}
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.WINDOWS_SIGNING_KEY }}" ]; then
+            echo "has_key=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_key=false" >> $GITHUB_OUTPUT
+            echo "No Windows signing key configured, skipping code sign"
+          fi
+
       - name: Code Sign
-        if: ${{ inputs.upload-artifact && startsWith(matrix.platform,'windows') && secrets.WINDOWS_SIGNING_KEY != '' }}
+        if: ${{ steps.check-win-sign.outputs.has_key == 'true' }}
         continue-on-error: true
         uses: hiddify/signtool-code-sign-sha256@main
         with:
