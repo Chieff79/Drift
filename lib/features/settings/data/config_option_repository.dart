@@ -7,6 +7,8 @@ import 'package:hiddify/core/utils/json_converters.dart';
 import 'package:hiddify/core/utils/preferences_utils.dart';
 import 'package:hiddify/features/log/model/log_level.dart';
 import 'package:hiddify/features/profile/data/profile_parser.dart';
+import 'package:hiddify/features/profile/model/profile_entity.dart';
+import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/settings/model/config_option_failure.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hiddify/singbox/model/singbox_config_option.dart';
@@ -405,14 +407,89 @@ abstract class ConfigOptions {
     'domain:api.db-ip.com',
   ];
 
+  /// Telegram domains that should be routed through proxy
+  /// when the free "Telegram Free" profile is active.
+  static const telegramProxyDomains = [
+    'domain_suffix:telegram.org',
+    'domain_suffix:t.me',
+    'domain:tdesktop.com',
+    'domain:updates.tdesktop.com',
+    'domain:td.telegram.org',
+    'domain:api.telegram.org',
+    'domain_suffix:telesco.pe',
+    'domain_suffix:tg.dev',
+  ];
+
+  /// Telegram IP CIDR ranges (official Telegram DC subnets)
+  static const telegramIpRanges = [
+    '149.154.160.0/20',
+    '91.108.4.0/22',
+    '91.108.8.0/22',
+    '91.108.12.0/22',
+    '91.108.16.0/22',
+    '91.108.20.0/22',
+    '91.108.56.0/22',
+  ];
+
+  /// Check if the active profile is the free Telegram-only profile
+  static bool _isTelegramFreeProfile(ProfileEntity? profile) {
+    if (profile == null) return false;
+    // Check by name (set via UserOverride when adding free profile)
+    if (profile.name == 'Telegram Free') return true;
+    // Fallback: check by URL for remote profiles
+    if (profile is RemoteProfileEntity) {
+      return profile.url.contains('free_tg_sub');
+    }
+    return false;
+  }
+
   static final singboxConfigOptions = Provider<SingboxConfigOption>((ref) {
     // final region = ref.watch(Preferences.region);
     final rules = <SingboxRule>[];
 
+    // Check if active profile is the free Telegram-only profile
+    final activeProfile = ref.watch(activeProfileProvider).valueOrNull;
+    final isTelegramOnly = _isTelegramFreeProfile(activeProfile);
+
+    if (isTelegramOnly) {
+      // Telegram-only mode: route only Telegram through VPN, bypass everything else
+      // Order matters — first matching rule wins in sing-box
+
+      // 1. Telegram domains → proxy
+      rules.add(
+        const SingboxRule(
+          domains: telegramProxyDomains,
+        ),
+      );
+
+      // 2. Telegram IP ranges → proxy
+      for (final cidr in telegramIpRanges) {
+        rules.add(
+          SingboxRule(
+            ip: cidr,
+          ),
+        );
+      }
+
+      // 3. Everything else → bypass (direct connection)
+      rules.add(
+        const SingboxRule(
+          ip: '0.0.0.0/0',
+          outbound: RuleOutbound.bypass,
+        ),
+      );
+      rules.add(
+        const SingboxRule(
+          ip: '::/0',
+          outbound: RuleOutbound.bypass,
+        ),
+      );
+    }
+
     // Russian whitelist: bypass tunnel for banking/government/payment domains
     if (ref.watch(enableRuWhitelist)) {
       rules.add(
-        SingboxRule(
+        const SingboxRule(
           domains: ruWhitelistDomains,
           outbound: RuleOutbound.bypass,
         ),
