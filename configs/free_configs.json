@@ -1,20 +1,39 @@
 {
   "profiles": [
     {
+      "region": ["RU"],
+      "title": {
+        "en": "Telegram Free",
+        "fa": "Telegram Free",
+        "ru": "Telegram Free"
+      },
+      "sublink": "https://raw.githubusercontent.com/Chieff79/Drift/refs/heads/drift-code/configs/free_tg_sub.txt",
+      "tags": {
+        "en": ["Telegram", "Free", "RU"],
+        "fa": ["Telegram", "Free", "RU"]
+      },
+      "consent": {
+        "en": "Free access to Telegram. For full VPN access, subscribe via @DriftWay_bot",
+        "fa": "Free access to Telegram."
+      },
+      "needed_features": ["fragment"]
+    },
+    {
       "region": [],
       "title": {
         "en": "Drift",
         "fa": "Drift"
       },
-      "sublink": "https://62.60.235.92:8443/sub/ZHJpZnRfdGVzdCwxNzczOTI4MDIzboO7EyrnRQ",
+      "sublink": "https://raw.githubusercontent.com/Chieff79/Drift/refs/heads/drift-code/configs/free_tg_sub.txt",
       "tags": {
         "en": ["NL", "RU", "US"],
         "fa": ["NL", "RU", "US"]
       },
       "consent": {
-        "en": "By connecting you agree to Drift terms of service. This is a shared test account.",
-        "fa": "با اتصال، با شرایط خدمات Drift موافقت می‌کنید."
-      }
+        "en": "By connecting you agree to Drift terms of service.",
+        "fa": "By connecting you agree to Drift terms of service."
+      },
+      "needed_features": ["fragment"]
     }
   ]
 }

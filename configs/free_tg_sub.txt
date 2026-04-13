@@ -1,0 +1,1 @@
+vless://a1b2c3d4-e5f6-7890-abcd-ef1234567890@relay.fastpipe-io.uk:443?security=reality&type=tcp&flow=xtls-rprx-vision&sni=dl.google.com&fp=chrome&pbk=BFolChuBHr1s8nRwszhgE8Fj910LaPoG0qXQbQfbLgI&sid=4f41bcdd3f7772e1#Drift%20Free%20%F0%9F%87%B7%F0%9F%87%BA
