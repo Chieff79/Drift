@@ -12,6 +12,7 @@ import 'dart:math';
 import 'package:hiddify/features/home/widget/globe_widget.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
+import 'package:hiddify/features/profile/notifier/profile_notifier.dart';
 import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
@@ -53,6 +54,9 @@ class HomePage extends HookConsumerWidget {
           ],
         ),
         actions: [
+          // ── Mini Telegram free toggle ──
+          const _TelegramFreeChip(),
+          const Gap(4),
           // ── Mini whitelist toggle ──
           const _WhitelistChip(),
           const Gap(4),
@@ -664,6 +668,151 @@ class _CountrySelector extends StatelessWidget {
       'CH': 'Швейцария',
     };
     return names[code.toUpperCase()] ?? '';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  TELEGRAM FREE TOGGLE (AppBar chip)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// One-tap toggle that activates the free "Telegram Free" VPN profile.
+/// When enabled: adds/finds the Telegram Free profile, selects it, connects.
+/// When disabled: disconnects VPN.
+class _TelegramFreeChip extends ConsumerWidget {
+  const _TelegramFreeChip();
+
+  static const _telegramFreeSublink =
+      'https://raw.githubusercontent.com/Chieff79/Drift/refs/heads/drift-code/configs/free_tg_sub.txt';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Determine if "Telegram Free" profile is currently active
+    final activeProfile = ref.watch(activeProfileProvider).valueOrNull;
+    final enabled = _isTelegramFree(activeProfile);
+    final isConnecting =
+        ref.watch(connectionNotifierProvider).valueOrNull?.isSwitching ?? false;
+    final theme = Theme.of(context);
+
+    const tgColor = Color(0xFF2AABEE); // Telegram blue
+
+    return GestureDetector(
+      onTap: isConnecting
+          ? null
+          : () => _handleTap(context, ref, enabled),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: enabled
+              ? tgColor.withValues(alpha: 0.15)
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: enabled
+                ? tgColor.withValues(alpha: 0.4)
+                : theme.colorScheme.outline.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              enabled ? Icons.send_rounded : Icons.send_outlined,
+              size: 13,
+              color: enabled
+                  ? tgColor
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            const Gap(4),
+            Text(
+              'Telegram',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: enabled
+                    ? tgColor
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isTelegramFree(ProfileEntity? profile) {
+    if (profile == null) return false;
+    if (profile.name == 'Telegram Free') return true;
+    if (profile is RemoteProfileEntity) {
+      return profile.url.contains('free_tg_sub');
+    }
+    return false;
+  }
+
+  Future<void> _handleTap(
+    BuildContext context,
+    WidgetRef ref,
+    bool currentlyEnabled,
+  ) async {
+    if (currentlyEnabled) {
+      // Turn off — just disconnect
+      await ref.read(connectionNotifierProvider.notifier).toggleConnection();
+      return;
+    }
+
+    // Turn on — find or add the Telegram Free profile, then connect
+    final profiles = ref.read(profilesNotifierProvider).valueOrNull ?? [];
+
+    // Check if Telegram Free profile already exists
+    ProfileEntity? tgProfile;
+    for (final p in profiles) {
+      if (p.name == 'Telegram Free' ||
+          (p is RemoteProfileEntity && p.url.contains('free_tg_sub'))) {
+        tgProfile = p;
+        break;
+      }
+    }
+
+    if (tgProfile != null) {
+      // Profile exists — select it and connect
+      if (!tgProfile.active) {
+        await ref
+            .read(profilesNotifierProvider.notifier)
+            .selectActiveProfile(tgProfile.id);
+        // Small delay for profile switch to propagate
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      }
+      await ref.read(connectionNotifierProvider.notifier).toggleConnection();
+    } else {
+      // Profile doesn't exist — add it automatically
+      await ref.read(addProfileNotifierProvider.notifier).addManual(
+            url: _telegramFreeSublink,
+            userOverride: const UserOverride(
+              name: 'Telegram Free',
+              updateInterval: 12,
+              enableFragment: true,
+            ),
+          );
+      // Wait for profile to be added and appear in the list
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      // Find the newly added profile and select it
+      final updatedProfiles =
+          ref.read(profilesNotifierProvider).valueOrNull ?? [];
+      for (final p in updatedProfiles) {
+        if (p.name == 'Telegram Free' ||
+            (p is RemoteProfileEntity && p.url.contains('free_tg_sub'))) {
+          if (!p.active) {
+            await ref
+                .read(profilesNotifierProvider.notifier)
+                .selectActiveProfile(p.id);
+            await Future<void>.delayed(const Duration(milliseconds: 300));
+          }
+          break;
+        }
+      }
+      await ref.read(connectionNotifierProvider.notifier).toggleConnection();
+    }
   }
 }
 
