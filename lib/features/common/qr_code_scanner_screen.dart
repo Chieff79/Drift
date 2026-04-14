@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
@@ -402,6 +403,41 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 class QrCodeScannerDialog extends ConsumerWidget {
   const QrCodeScannerDialog({super.key});
 
+  Future<void> _pickFromGallery(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final filePath = result.files.first.path;
+    if (filePath == null) return;
+
+    final controller = MobileScannerController();
+    try {
+      final barcodeCapture = await controller.analyzeImage(filePath);
+      if (barcodeCapture != null && barcodeCapture.barcodes.isNotEmpty) {
+        final rawData = barcodeCapture.barcodes.first.rawValue;
+        if (rawData != null && context.mounted) {
+          context.pop(rawData);
+          return;
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('QR-код не найден на изображении')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка чтения QR-кода')),
+        );
+      }
+    } finally {
+      controller.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.read(translationsProvider).requireValue;
@@ -424,19 +460,9 @@ class QrCodeScannerDialog extends ConsumerWidget {
               onDetect: (barcodes) {
                 final rawData = barcodes.barcodes.first.rawValue;
                 if (rawData != null) context.pop(rawData);
-                // loggy.debug('captured raw: [$rawData]');
-                // if (rawData != null) {
-                //   context.pop(rawData);
-                //   final uri = Uri.tryParse(rawData);
-                //   if (context.mounted && uri != null) {
-                //     // loggy.debug('captured url: [$uri]');
-                //     context.pop(uri.toString());
-                //   }
-                // } else {
-                //   // loggy.warning("unable to capture");
-                // }
               },
             ),
+            // Close button
             Align(
               alignment: AlignmentDirectional.topStart,
               child: Container(
@@ -449,6 +475,24 @@ class QrCodeScannerDialog extends ConsumerWidget {
                   onPressed: () => context.pop(),
                   icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onPrimaryContainer),
                   splashRadius: 24,
+                ),
+              ),
+            ),
+            // Gallery button
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 40),
+                child: TextButton.icon(
+                  onPressed: () => _pickFromGallery(context),
+                  icon: const Icon(Icons.image_outlined),
+                  label: const Text('Из галереи'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.9),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(1000)),
+                  ),
                 ),
               ),
             ),
