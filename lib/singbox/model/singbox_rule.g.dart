@@ -18,9 +18,7 @@ _$SingboxRuleImpl _$$SingboxRuleImplFromJson(Map<String, dynamic> json) =>
       network:
           $enumDecodeNullable(_$RuleNetworkEnumMap, json['network']) ??
           RuleNetwork.tcpAndUdp,
-      outbound:
-          $enumDecodeNullable(_$RuleOutboundEnumMap, json['outbound']) ??
-          RuleOutbound.proxy,
+      outbound: _ruleOutboundFromJson(json['outbound']),
     );
 
 Map<String, dynamic> _$$SingboxRuleImplToJson(
@@ -32,7 +30,7 @@ Map<String, dynamic> _$$SingboxRuleImplToJson(
   if (instance.port case final value?) 'port': value,
   if (instance.protocol case final value?) 'protocol': value,
   if (_ruleNetworkToJson(instance.network) case final value?) 'network': value,
-  'outbound': _$RuleOutboundEnumMap[instance.outbound]!,
+  'outbound': _ruleOutboundToJson(instance.outbound),
 };
 
 const _$RuleNetworkEnumMap = {
@@ -41,8 +39,4 @@ const _$RuleNetworkEnumMap = {
   RuleNetwork.udp: 'udp',
 };
 
-const _$RuleOutboundEnumMap = {
-  RuleOutbound.proxy: 'proxy',
-  RuleOutbound.bypass: 'bypass',
-  RuleOutbound.block: 'block',
-};
+// RuleOutbound now uses integer serialization via _ruleOutboundToJson/_ruleOutboundFromJson
