@@ -19,27 +19,20 @@ class BottomSheetsNotifier extends _$BottomSheetsNotifier {
   Future<T?> _show<T>({required Widget child, required bool isScrollControlled}) async {
     final context = rootNavKey.currentContext;
     if (context == null) return null;
-    // ref.read(popupCountNotifierProvider.notifier).increase();
-    return await Navigator.of(context)
-        .push<T>(
-          ModalBottomSheetRoute(
-            constraints: BottomSheetConst.boxConstraints,
-            isScrollControlled: isScrollControlled,
-            builder: (context) => ClipRRect(
-              borderRadius: BottomSheetConst.borderRadius,
-              child: Material(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-                  child: child,
-                ),
-              ),
-            ),
-          ),
-        )
-        .then((value) {
-          // ref.read(popupCountNotifierProvider.notifier).decrease();
-          return value;
-        });
+    return await showModalBottomSheet<T>(
+      context: context,
+      constraints: BottomSheetConst.boxConstraints,
+      isScrollControlled: isScrollControlled,
+      isDismissible: true,
+      enableDrag: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BottomSheetConst.borderRadius,
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: child,
+      ),
+    );
   }
 
   Future<void> showAddProfile({String? url}) async =>
