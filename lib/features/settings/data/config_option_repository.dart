@@ -7,8 +7,6 @@ import 'package:hiddify/core/utils/json_converters.dart';
 import 'package:hiddify/core/utils/preferences_utils.dart';
 import 'package:hiddify/features/log/model/log_level.dart';
 import 'package:hiddify/features/profile/data/profile_parser.dart';
-import 'package:hiddify/features/profile/model/profile_entity.dart';
-import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/settings/model/config_option_failure.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hiddify/singbox/model/singbox_config_option.dart';
@@ -230,7 +228,7 @@ abstract class ConfigOptions {
     mapTo: (value) => value.name,
   );
 
-  static final enableRuWhitelist = PreferencesNotifier.create<bool, bool>("enable-ru-whitelist", false);
+  static final enableRuWhitelist = PreferencesNotifier.create<bool, bool>("enable-ru-whitelist", true);
 
   static final enableWarp = PreferencesNotifier.create<bool, bool>("enable-warp", false);
 
@@ -378,21 +376,37 @@ abstract class ConfigOptions {
     'domain_suffix:.su',
     'domain_suffix:.xn--p1ai', // .рф (punycode)
     // Russian services on non-.ru domains
-    'domain:tbank.ru',
-    'domain:vk.com',
-    'domain:ok.ru',
-    'domain:pochta.bank',
-    'domain:ozon.bank',
-    'domain:yandex.net',
-    'domain:yandex.com',
-    'domain:sberbank.com',
+    'domain_suffix:vk.com',
+    'domain_suffix:vk.me',
+    'domain_suffix:vkontakte.com',
+    'domain_suffix:vkusvill.com',
+    'domain_suffix:yandex.net',
+    'domain_suffix:yandex.com',
+    'domain_suffix:yandex.eu',
+    'domain_suffix:yastatic.net',
+    'domain_suffix:yastat.net',
+    'domain_suffix:yandex.st',
+    'domain_suffix:sberbank.com',
+    'domain_suffix:tbank.com',
+    'domain_suffix:pochta.bank',
+    'domain_suffix:ozon.bank',
+    'domain_suffix:wildberries.com',
+    'domain_suffix:wb.com',
+    'domain_suffix:avito.st',
+    'domain_suffix:kaspersky.com',
+    'domain_suffix:mts.com',
+    'domain_suffix:megafon.com',
+    'domain_suffix:tele2.com',
+    'domain_suffix:beeline.com',
+    'domain_suffix:rt.com',
+    'domain_suffix:gazprom.com',
+    'domain_suffix:aeroflot.com',
+    'domain_suffix:rzd.com',
     // IP checker services — bypass so sites don't detect tunnel
-    // (JS on .ru pages calls these APIs to check user IP)
     'domain:api.ipify.org',
     'domain:ipify.org',
     'domain:ident.me',
     'domain:whoer.net',
-    'domain:2ip.ru',
     'domain:ip-api.com',
     'domain:ipinfo.io',
     'domain:ipapi.co',
@@ -407,86 +421,10 @@ abstract class ConfigOptions {
     'domain:api.db-ip.com',
   ];
 
-  /// Telegram domains that should be routed through proxy
-  /// when the free "Telegram Free" profile is active.
-  static const telegramProxyDomains = [
-    'domain_suffix:telegram.org',
-    'domain_suffix:t.me',
-    'domain:tdesktop.com',
-    'domain:updates.tdesktop.com',
-    'domain:td.telegram.org',
-    'domain:api.telegram.org',
-    'domain_suffix:telesco.pe',
-    'domain_suffix:tg.dev',
-  ];
-
-  /// Telegram IP CIDR ranges (official Telegram DC subnets)
-  static const telegramIpRanges = [
-    '149.154.160.0/20',
-    '91.108.4.0/22',
-    '91.108.8.0/22',
-    '91.108.12.0/22',
-    '91.108.16.0/22',
-    '91.108.20.0/22',
-    '91.108.56.0/22',
-  ];
-
-  /// Check if the active profile is the free Telegram-only profile
-  static bool _isTelegramFreeProfile(ProfileEntity? profile) {
-    if (profile == null) return false;
-    // Check by name (set via UserOverride when adding free profile)
-    if (profile.name == 'Telegram Free') return true;
-    // Fallback: check by URL for remote profiles
-    if (profile is RemoteProfileEntity) {
-      return profile.url.contains('free_tg_sub');
-    }
-    return false;
-  }
-
   static final singboxConfigOptions = Provider<SingboxConfigOption>((ref) {
-    // final region = ref.watch(Preferences.region);
     final rules = <SingboxRule>[];
 
-    // Check if active profile is the free Telegram-only profile
-    final activeProfile = ref.watch(activeProfileProvider).valueOrNull;
-    final isTelegramOnly = _isTelegramFreeProfile(activeProfile);
-
-    if (isTelegramOnly) {
-      // Telegram-only mode: route only Telegram through VPN, bypass everything else
-      // Order matters — first matching rule wins in sing-box
-
-      // 1. Telegram domains → proxy
-      rules.add(
-        const SingboxRule(
-          domains: telegramProxyDomains,
-        ),
-      );
-
-      // 2. Telegram IP ranges → proxy
-      for (final cidr in telegramIpRanges) {
-        rules.add(
-          SingboxRule(
-            ip: cidr,
-          ),
-        );
-      }
-
-      // 3. Everything else → bypass (direct connection)
-      rules.add(
-        const SingboxRule(
-          ip: '0.0.0.0/0',
-          outbound: RuleOutbound.bypass,
-        ),
-      );
-      rules.add(
-        const SingboxRule(
-          ip: '::/0',
-          outbound: RuleOutbound.bypass,
-        ),
-      );
-    }
-
-    // Russian whitelist: bypass tunnel for banking/government/payment domains
+    // Russian whitelist: bypass tunnel for Russian domains
     if (ref.watch(enableRuWhitelist)) {
       rules.add(
         const SingboxRule(
