@@ -675,9 +675,9 @@ class _TelegramFreeChip extends StatelessWidget {
 
   /// MTProto proxy params (domain hides raw IP from RKN)
   static const _server = 'tg.fastpipe-io.uk';
-  static const _port = '443';
+  static const _port = '8880';
   static const _secret =
-      'ee8363d3edf5689818e06be38f4619f8ad74672e636f6d';
+      'ee3f61035341ba2889211e1f535c4b898d676f6f676c652e636f6d';
 
   /// Native deep-link (opens Telegram app directly)
   static const _proxyUrl =
