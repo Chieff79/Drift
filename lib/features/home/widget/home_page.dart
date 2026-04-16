@@ -18,7 +18,7 @@ import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/utils/uri_utils.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:sliver_tools/sliver_tools.dart';
+// sliver_tools import removed — no longer using CustomScrollView overlay
 
 class HomePage extends HookConsumerWidget {
   const HomePage({super.key});
@@ -68,21 +68,21 @@ class HomePage extends HookConsumerWidget {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // ── Full-screen interactive 3D globe ────────────────
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onPanUpdate: (details) {
-                final screenW = MediaQuery.of(context).size.width;
-                final screenH = MediaQuery.of(context).size.height;
-                final r = min(screenW, screenH) / 2 * 0.85;
-                final sensitivity = 1.2 / r;
-                globeLng.value -= details.delta.dx * sensitivity;
-                globeLat.value = (globeLat.value + details.delta.dy * sensitivity)
-                    .clamp(-pi / 2, pi / 2);
-              },
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onPanUpdate: (details) {
+          final screenW = MediaQuery.of(context).size.width;
+          final screenH = MediaQuery.of(context).size.height;
+          final r = min(screenW, screenH) / 2 * 0.85;
+          final sensitivity = 1.2 / r;
+          globeLng.value -= details.delta.dx * sensitivity;
+          globeLat.value = (globeLat.value + details.delta.dy * sensitivity)
+              .clamp(-pi / 2, pi / 2);
+        },
+        child: Stack(
+          children: [
+            // ── Full-screen interactive 3D globe ────────────────
+            Positioned.fill(
               child: GlobeWidget(
                 isConnected: isConnected,
                 isConnecting: isConnecting,
@@ -92,55 +92,43 @@ class HomePage extends HookConsumerWidget {
                 viewLngNotifier: globeLng,
               ),
             ),
-          ),
 
-          // ── UI content on top of the globe ──────────────────
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: CustomScrollView(
-                slivers: [
-                  MultiSliver(
-                    children: [
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Gap(8),
+            // ── UI content on top of the globe ──────────────────
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  children: [
+                    const Gap(8),
 
-                            // ── IP Status Card (always visible — shows real or protected IP) ──
-                            _IpStatusCard(isConnected: isConnected),
+                    // ── IP Status Card (always visible — shows real or protected IP) ──
+                    _IpStatusCard(isConnected: isConnected),
 
-                            const Spacer(),
+                    const Spacer(),
 
-                            // ── Country selector button ────────────────────
-                            _CountrySelector(
-                              vpnCountryCode: vpnCountryCode,
-                              onTap: () => context.goNamed('countrySelection'),
-                            ),
+                    // ── Country selector button ────────────────────
+                    _CountrySelector(
+                      vpnCountryCode: vpnCountryCode,
+                      onTap: () => context.goNamed('countrySelection'),
+                    ),
 
-                            const Gap(16),
+                    const Gap(16),
 
-                            // ── Connection button ───────────────────────────
-                            const ConnectionButton(),
+                    // ── Connection button ───────────────────────────
+                    const ConnectionButton(),
 
-                            const Gap(24),
+                    const Gap(24),
 
-                            // ── City A → City B row ────────────────────────
-                            if (isConnected) const _CityRouteRow(),
+                    // ── City A → City B row ────────────────────────
+                    if (isConnected) const _CityRouteRow(),
 
-                            const Gap(8),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    const Gap(8),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -685,9 +673,9 @@ class _CountrySelector extends StatelessWidget {
 class _TelegramFreeChip extends StatelessWidget {
   const _TelegramFreeChip();
 
-  /// MTProto proxy params
-  static const _server = '72.56.238.148';
-  static const _port = '3128';
+  /// MTProto proxy params (domain hides raw IP from RKN)
+  static const _server = 'tg.fastpipe-io.uk';
+  static const _port = '443';
   static const _secret =
       'ee8363d3edf5689818e06be38f4619f8ad74672e636f6d';
 
