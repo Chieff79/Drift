@@ -133,6 +133,7 @@ dependencies:
   # platform-specific settings
   network_info_plus: ^6.1.4
   humanizer: ^3.0.1
+  video_player: ^2.8.6
   dependency_validator: ^5.0.2
 
 dev_dependencies:
@@ -178,6 +179,7 @@ flutter:
     - assets/images/world_map.png
     - assets/images/earth_texture.jpg
     - assets/images/source/ic_launcher_border.png
+    - assets/videos/splash_animation.mp4
 
   fonts:
     - family: Shabnam
@@ -196,11 +198,11 @@ flutter_gen:
     flutter_svg: true
 
 flutter_native_splash:
-  color: "#ffffff"
+  color: "#0A1628"
   image: assets/images/source/ic_launcher_splash.png
   android_gravity: center
   android_12:
-    color: "#ffffff"
+    color: "#0A1628"
     image: assets/images/source/ic_launcher_foreground.png
 
 ffigen:

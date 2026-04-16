@@ -25,6 +25,7 @@ import 'package:hiddify/features/settings/overview/sections/stats_page.dart';
 import 'package:hiddify/features/settings/overview/sections/tls_tricks_page.dart';
 import 'package:hiddify/features/settings/overview/sections/warp_options_page.dart';
 import 'package:hiddify/features/settings/overview/settings_page.dart';
+import 'package:hiddify/features/splash/widget/splash_screen.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -41,7 +42,10 @@ final branchesScope = <String, FocusScopeNode>{
 
 // when the routing config is not yet initialized, this config is used
 final loadingConfig = RoutingConfig(
-  routes: <RouteBase>[GoRoute(path: '/home', builder: (context, state) => const Material())],
+  routes: <RouteBase>[
+    GoRoute(path: '/home', builder: (context, state) => const Material()),
+    GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
+  ],
 );
 
 String getNameOfBranch(bool isMobileBreakpoint, bool showProfilesAction, int index) => isMobileBreakpoint
@@ -72,6 +76,9 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
     if (isMobileBreakpoint == null) return loadingConfig;
     return RoutingConfig(
       redirect: (context, state) {
+        // Let the splash screen display without redirection
+        if (state.matchedLocation == '/splash') return null;
+
         final introCompleted = ref.read(Preferences.introCompleted);
         final isIntro = state.matchedLocation == '/intro';
         // fix path-parameters for deep link
@@ -275,6 +282,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
           ],
         ),
         GoRoute(name: 'intro', path: '/intro', builder: (_, _) => const IntroPage()),
+        GoRoute(name: 'splash', path: '/splash', builder: (_, _) => const SplashScreen()),
       ],
     );
   }
