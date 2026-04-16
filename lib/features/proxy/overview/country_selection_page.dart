@@ -17,19 +17,22 @@ class CountrySelectionPage extends HookConsumerWidget {
     final proxies = ref.watch(proxiesOverviewNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Выбор страны')),
+      appBar: AppBar(title: const Text('Выбор локации')),
       body: proxies.when(
         data: (group) {
           if (group == null || group.items.isEmpty) {
-            // Service not running or no proxies available yet.
-            // Show a helpful message instead of a blank screen.
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.cloud_off_rounded, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .3)),
+                    Icon(Icons.cloud_off_rounded,
+                        size: 48,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: .3)),
                     const Gap(16),
                     Text(
                       t.pages.home.connectFirst,
@@ -40,8 +43,11 @@ class CountrySelectionPage extends HookConsumerWidget {
                     Text(
                       t.pages.home.connectFirstInfo,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .5),
-                      ),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: .5),
+                          ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -58,13 +64,14 @@ class CountrySelectionPage extends HookConsumerWidget {
             itemCount: countries.length,
             itemBuilder: (context, index) {
               final country = countries[index];
-              final isSelected = country.proxies.any((p) => p.tag == selectedTag);
+              // Check if currently selected proxy belongs to this country group
+              final isSelected =
+                  country.proxies.any((p) => p.tag == selectedTag);
 
               return _CountryTile(
                 country: country,
                 isSelected: isSelected,
                 onTap: () async {
-                  // Select the best proxy in this country
                   final bestProxy = country.bestProxy;
                   await ref
                       .read(proxiesOverviewNotifierProvider.notifier)
@@ -76,29 +83,7 @@ class CountrySelectionPage extends HookConsumerWidget {
           );
         },
         error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.error_outline_rounded, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .3)),
-                const Gap(16),
-                Text(
-                  t.pages.home.connectFirst,
-                  style: Theme.of(context).textTheme.titleMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const Gap(8),
-                Text(
-                  t.pages.home.connectFirstInfo,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .5),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
+          child: Text('Ошибка загрузки: $error'),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
@@ -107,26 +92,46 @@ class CountrySelectionPage extends HookConsumerWidget {
 
   List<CountryGroup> _groupByCountry(List<OutboundInfo> proxies) {
     final map = <String, List<OutboundInfo>>{};
+    final countryCodeRegex = RegExp(r'^([A-Z]{2})');
 
     for (final proxy in proxies) {
-      final code = proxy.ipinfo.countryCode.isNotEmpty
-          ? proxy.ipinfo.countryCode.toUpperCase()
-          : '??';
-      map.putIfAbsent(code, () => []).add(proxy);
+      String? code;
+
+      // 1. Try to parse from remark (tag) first
+      final match = countryCodeRegex.firstMatch(proxy.tag);
+      if (match != null) {
+        code = match.group(1)?.toUpperCase();
+      }
+
+      // 2. Fallback to ipinfo if tag doesn't contain a code
+      if (code == null || code.isEmpty) {
+        if (proxy.ipinfo.countryCode.isNotEmpty) {
+          code = proxy.ipinfo.countryCode.toUpperCase();
+        }
+      }
+
+      // 3. Final fallback
+      final finalCode = (code != null && code.length == 2) ? code : '??';
+
+      map.putIfAbsent(finalCode, () => []).add(proxy);
     }
 
     final groups = map.entries
         .map((e) => CountryGroup(countryCode: e.key, proxies: e.value))
         .toList();
 
-    // Sort: countries with working proxies (delay > 0) first, then by best delay
+    // Sorting logic:
+    // 1. Active countries (with working delay) go first, sorted by speed
+    // 2. Unknown/failed countries (delay 0) go last, sorted alphabetically
     groups.sort((a, b) {
       final aDelay = a.bestDelay;
       final bDelay = b.bestDelay;
-      if (aDelay == 0 && bDelay == 0) return a.countryName.compareTo(b.countryName);
-      if (aDelay == 0) return 1;
-      if (bDelay == 0) return -1;
-      return aDelay.compareTo(bDelay);
+
+      if (aDelay > 0 && bDelay > 0) return aDelay.compareTo(bDelay);
+      if (aDelay > 0 && bDelay == 0) return -1;
+      if (aDelay == 0 && bDelay > 0) return 1;
+
+      return a.countryName.compareTo(b.countryName);
     });
 
     return groups;
@@ -145,7 +150,8 @@ class CountryGroup {
     int best = 0;
     for (final p in proxies) {
       final d = p.urlTestDelay;
-      if (d > 0 && d < 65000) {
+      // Filter out invalid/timeout delays (Xray/sing-box often use 65535 for timeout)
+      if (d > 0 && d < 60000) {
         if (best == 0 || d < best) best = d;
       }
     }
@@ -156,10 +162,11 @@ class CountryGroup {
     OutboundInfo? best;
     for (final p in proxies) {
       final d = p.urlTestDelay;
-      if (d > 0 && d < 65000) {
+      if (d > 0 && d < 60000) {
         if (best == null || d < best.urlTestDelay) best = p;
       }
     }
+    // If no working proxies, pick the first one from the list
     return best ?? proxies.first;
   }
 
@@ -232,7 +239,7 @@ class _CountryTile extends StatelessWidget {
       child: Material(
         color: isSelected
             ? theme.colorScheme.primaryContainer
-            : theme.colorScheme.surfaceContainer,
+            : theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -241,31 +248,29 @@ class _CountryTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                // Country flag
                 SizedBox(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   child: country.countryCode != '??'
                       ? CircleFlag(
                           country.countryCode.toLowerCase(),
-                          size: 48,
+                          size: 44,
                         )
                       : Container(
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface.withValues(alpha: .08),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: .08),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.public_outlined,
-                            size: 28,
-                            color: theme.colorScheme.onSurface.withValues(alpha: .4),
+                            size: 24,
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: .4),
                           ),
                         ),
                 ),
-
                 const Gap(16),
-
-                // Country name + server count
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,21 +278,21 @@ class _CountryTile extends StatelessWidget {
                       Text(
                         country.countryName,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                       const Gap(2),
                       Text(
                         _serverCountLabel(country.serverCount),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: .5),
+                          color:
+                              theme.colorScheme.onSurface.withValues(alpha: .5),
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                // Latency indicator
                 if (bestDelay > 0)
                   _LatencyBadge(delay: bestDelay)
                 else
@@ -296,15 +301,12 @@ class _CountryTile extends StatelessWidget {
                     size: 18,
                     color: theme.colorScheme.onSurface.withValues(alpha: .3),
                   ),
-
                 const Gap(8),
-
-                // Selection check
                 if (isSelected)
                   Icon(
                     Icons.check_circle_rounded,
                     color: theme.colorScheme.primary,
-                    size: 24,
+                    size: 22,
                   ),
               ],
             ),
@@ -315,8 +317,10 @@ class _CountryTile extends StatelessWidget {
   }
 
   String _serverCountLabel(int count) {
-    if (count == 1) return '1 сервер';
-    if (count >= 2 && count <= 4) return '$count сервера';
+    if (count % 10 == 1 && count % 100 != 11) return '$count сервер';
+    if (count % 10 >= 2 &&
+        count % 10 <= 4 &&
+        (count % 100 < 10 || count % 100 >= 20)) return '$count сервера';
     return '$count серверов';
   }
 }
@@ -330,8 +334,7 @@ class _LatencyBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = switch (delay) {
       < 300 => Colors.green,
-      < 800 => Colors.lightGreen.shade700,
-      < 1500 => Colors.deepOrangeAccent,
+      < 800 => Colors.orange,
       _ => Colors.red,
     };
 
@@ -340,14 +343,13 @@ class _LatencyBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         '$delay ms',
         style: TextStyle(
           color: color,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
