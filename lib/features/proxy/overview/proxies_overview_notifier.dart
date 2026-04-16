@@ -122,6 +122,7 @@ class ProxiesOverviewNotifier extends _$ProxiesOverviewNotifier with AppLogger {
           .selectProxy(groupTag, outboundTag)
           .getOrElse((err) {
         loggy.warning("core selection failed (expected if service not running)");
+        throw err;
       }).run();
     } catch (e) {
       loggy.warning("selectProxy exception: $e");
