@@ -21,7 +21,33 @@ class CountrySelectionPage extends HookConsumerWidget {
       body: proxies.when(
         data: (group) {
           if (group == null || group.items.isEmpty) {
-            return Center(child: Text(t.pages.proxies.empty));
+            // Service not running or no proxies available yet.
+            // Show a helpful message instead of a blank screen.
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_rounded, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .3)),
+                    const Gap(16),
+                    Text(
+                      t.pages.home.connectFirst,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const Gap(8),
+                    Text(
+                      t.pages.home.connectFirstInfo,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .5),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
 
           final countries = _groupByCountry(group.items);
@@ -55,7 +81,7 @@ class CountrySelectionPage extends HookConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.cloud_off_rounded, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .3)),
+                Icon(Icons.error_outline_rounded, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: .3)),
                 const Gap(16),
                 Text(
                   t.pages.home.connectFirst,

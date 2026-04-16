@@ -110,21 +110,32 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
     }
   }
 
+  bool _isReconnecting = false;
+
   Future<void> reconnect(ProfileEntity? profile) async {
+    if (_isReconnecting) {
+      loggy.debug("reconnect already in progress, ignoring");
+      return;
+    }
     if (state case AsyncData(:final value) when value == const Connected()) {
       if (profile == null) {
         loggy.info("no active profile, disconnecting");
         return _disconnect();
       }
+      _isReconnecting = true;
       loggy.info("active profile changed, reconnecting");
-      await ref.read(Preferences.startedByUser.notifier).update(true);
-      await _connectionRepo.reconnect(profile, ref.read(Preferences.disableMemoryLimit)).mapLeft((err) async {
-        loggy.warning("error reconnecting", err);
-        state = AsyncError(err, StackTrace.current);
-        await ref
-            .read(dialogNotifierProvider.notifier)
-            .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
-      }).run();
+      try {
+        await ref.read(Preferences.startedByUser.notifier).update(true);
+        await _connectionRepo.reconnect(profile, ref.read(Preferences.disableMemoryLimit)).mapLeft((err) async {
+          loggy.warning("error reconnecting", err);
+          state = AsyncError(err, StackTrace.current);
+          await ref
+              .read(dialogNotifierProvider.notifier)
+              .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
+        }).run();
+      } finally {
+        _isReconnecting = false;
+      }
     }
   }
 

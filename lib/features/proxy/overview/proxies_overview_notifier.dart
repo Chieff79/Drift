@@ -8,7 +8,6 @@ import 'package:hiddify/core/preferences/preferences_provider.dart';
 import 'package:hiddify/core/utils/preferences_utils.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/proxy/data/proxy_data_providers.dart';
-import 'package:hiddify/features/proxy/model/proxy_failure.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 import 'package:hiddify/hiddifycore/init_signal.dart';
 import 'package:hiddify/utils/riverpod_utils.dart';
@@ -61,27 +60,14 @@ class ProxiesOverviewNotifier extends _$ProxiesOverviewNotifier with AppLogger {
     ref.disposeDelay(const Duration(seconds: 15));
     ref.watch(coreRestartSignalProvider);
     final serviceRunning = await ref.watch(serviceRunningProvider.future);
-    if (!serviceRunning) {
-      throw const ServiceNotRunning();
-    }
     final sortBy = ref.watch(proxiesSortNotifierProvider);
-    // yield* ref
-    //     .watch(proxyRepositoryProvider)
-    //     .watchProxies()
-    //     .throttleTime(
-    //       const Duration(milliseconds: 100),
-    //       leading: false,
-    //       trailing: true,
-    //     )
-    //     .map(
-    //       (event) => event.getOrElse(
-    //         (err) {
-    //           loggy.warning("error receiving proxies", err);
-    //           throw err;
-    //         },
-    //       ),
-    //     )
-    //     .asyncMap((proxies) async => _sortOutbounds(proxies, sortBy));
+    if (!serviceRunning) {
+      // Allow UI to show empty state instead of throwing an error.
+      // The user can still open the country selector and see the list
+      // once the service starts (provider will rebuild via serviceRunningProvider).
+      yield null;
+      return;
+    }
     yield* ref
         .watch(proxyRepositoryProvider)
         .watchProxies()
@@ -204,17 +190,28 @@ class ProxiesOverviewNotifier extends _$ProxiesOverviewNotifier with AppLogger {
   Future<void> changeProxy(String groupTag, String outboundTag) async {
     loggy.debug("changing proxy, group: [$groupTag] - outbound: [$outboundTag]");
     if (!state.hasValue) return;
-    final outbounds = state.value!;
+    final outbounds = state.value;
     await ref.read(hapticServiceProvider.notifier).lightImpact();
-    await ref.read(proxyRepositoryProvider).selectProxy(groupTag, outboundTag).getOrElse((err) {
-      loggy.warning("error selecting outbound", err);
-      throw err;
-    }).run();
-    final newselected = outbounds.items.where((e) => e.tag == outboundTag).firstOrNull;
-    if (newselected != null) {
-      newselected.isSelected = true;
-      outbounds.selected = newselected.tag;
-      state = AsyncValue.data(outbounds);
+
+    // Try to select the outbound via the core service.
+    // If VPN is not running, this will fail — we catch the error and still
+    // update local state so the selection is remembered for next connect.
+    try {
+      await ref.read(proxyRepositoryProvider).selectProxy(groupTag, outboundTag).getOrElse((err) {
+        loggy.warning("error selecting outbound (service may not be running)", err);
+        throw err;
+      }).run();
+    } catch (e) {
+      loggy.warning("selectProxy failed, saving selection locally: $e");
+    }
+
+    if (outbounds != null) {
+      final newselected = outbounds.items.where((e) => e.tag == outboundTag).firstOrNull;
+      if (newselected != null) {
+        newselected.isSelected = true;
+        outbounds.selected = newselected.tag;
+        state = AsyncValue.data(outbounds);
+      }
     }
   }
 

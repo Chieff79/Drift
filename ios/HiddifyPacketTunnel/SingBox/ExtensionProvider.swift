@@ -176,22 +176,27 @@ open class ExtensionProvider: NEPacketTunnelProvider {
         }
     }
     
-    func reloadService() async {
+    func reloadService() async throws {
         logger.debug("Reloading service")
         writeMessage("(packet-tunnel) reloading service")
-//        reasserting = true
-//        defer { reasserting = false }
-//        
-//        stopService()
-//        do {
-//            guard let config = try? String(contentsOf: FilePath.configFile) else {
-//                writeFatalError("(packet-tunnel) error: cannot read config file")
-//                return
-//            }
-//            try await startService(config)
-//        } catch {
-//            writeFatalError("(packet-tunnel) error: reload service: \(error.localizedDescription)")
-//        }
+        reasserting = true
+        defer { reasserting = false }
+
+        // Re-apply tunnel network settings to reassert the tunnel on network change.
+        // This nudges iOS to re-bind the tunnel's routes after an interface transition.
+        if let currentSettings = platformInterface?.networkSettings {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                setTunnelNetworkSettings(nil) { _ in
+                    continuation.resume()
+                }
+            }
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                setTunnelNetworkSettings(currentSettings) { _ in
+                    continuation.resume()
+                }
+            }
+            writeMessage("(packet-tunnel) tunnel network settings reasserted")
+        }
     }
     
     override open func handleAppMessage(_ messageData: Data) async -> Data? {

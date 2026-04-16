@@ -68,24 +68,29 @@ class HomePage extends HookConsumerWidget {
           ),
         ],
       ),
-      body: GestureDetector(
-        onHorizontalDragUpdate: (details) {
-          // Horizontal swipe rotates the globe (doesn't conflict with vertical scroll)
-          final screenW = MediaQuery.of(context).size.width;
-          final r = min(screenW, MediaQuery.of(context).size.height) / 2 * 0.85;
-          globeLng.value -= details.delta.dx * 1.2 / r;
-        },
-        child: Stack(
+      body: Stack(
         children: [
           // ── Full-screen interactive 3D globe ────────────────
           Positioned.fill(
-            child: GlobeWidget(
-              isConnected: isConnected,
-              isConnecting: isConnecting,
-              userCountryCode: userCountryCode,
-              vpnCountryCode: vpnCountryCode,
-              viewLatNotifier: globeLat,
-              viewLngNotifier: globeLng,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onPanUpdate: (details) {
+                final screenW = MediaQuery.of(context).size.width;
+                final screenH = MediaQuery.of(context).size.height;
+                final r = min(screenW, screenH) / 2 * 0.85;
+                final sensitivity = 1.2 / r;
+                globeLng.value -= details.delta.dx * sensitivity;
+                globeLat.value = (globeLat.value + details.delta.dy * sensitivity)
+                    .clamp(-pi / 2, pi / 2);
+              },
+              child: GlobeWidget(
+                isConnected: isConnected,
+                isConnecting: isConnecting,
+                userCountryCode: userCountryCode,
+                vpnCountryCode: vpnCountryCode,
+                viewLatNotifier: globeLat,
+                viewLngNotifier: globeLng,
+              ),
             ),
           ),
 
@@ -136,7 +141,6 @@ class HomePage extends HookConsumerWidget {
             ),
           ),
         ],
-      ),
       ),
     );
   }
@@ -681,9 +685,19 @@ class _CountrySelector extends StatelessWidget {
 class _TelegramFreeChip extends StatelessWidget {
   const _TelegramFreeChip();
 
-  /// MTProto proxy on RU relay — accessible from Russia directly
+  /// MTProto proxy params
+  static const _server = '72.56.238.148';
+  static const _port = '3128';
+  static const _secret =
+      'ee8363d3edf5689818e06be38f4619f8ad74672e636f6d';
+
+  /// Native deep-link (opens Telegram app directly)
   static const _proxyUrl =
-      'tg://proxy?server=72.56.238.148&port=3128&secret=ee8363d3edf5689818e06be38f4619f8ad74672e636f6d';
+      'tg://proxy?server=$_server&port=$_port&secret=$_secret';
+
+  /// Web fallback (redirects to Telegram via browser)
+  static const _proxyWebUrl =
+      'https://t.me/proxy?server=$_server&port=$_port&secret=$_secret';
 
   @override
   Widget build(BuildContext context) {
@@ -718,12 +732,21 @@ class _TelegramFreeChip extends StatelessWidget {
   }
 
   Future<void> _openProxy(BuildContext context) async {
+    // Try native tg:// deep-link first
     final uri = Uri.parse(_proxyUrl);
     final launched = await UriUtils.tryLaunch(uri);
     if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Установите Telegram для добавления прокси')),
-      );
+      // Fallback: open via https://t.me/ which works even without
+      // LSApplicationQueriesSchemes — browser redirects to Telegram
+      final webUri = Uri.parse(_proxyWebUrl);
+      final webLaunched = await UriUtils.tryLaunch(webUri);
+      if (!webLaunched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Установите Telegram для добавления прокси'),
+          ),
+        );
+      }
     }
   }
 }

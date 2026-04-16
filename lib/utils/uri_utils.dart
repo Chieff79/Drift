@@ -18,11 +18,18 @@ abstract class UriUtils {
   static Future<bool> tryLaunch(Uri uri) async {
     try {
       loggy.debug("launching [$uri]");
+      // Try launching directly first — canLaunchUrl requires
+      // LSApplicationQueriesSchemes on iOS and may return false
+      // even when the app is installed.
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) return true;
+      // Fallback: check canLaunchUrl for non-custom-scheme URLs
       if (!await canLaunchUrl(uri)) {
         loggy.warning("can't launch [$uri]");
         return false;
       }
-      return launchUrl(uri, mode: LaunchMode.externalApplication);
+      return false;
     } catch (e, stackTrace) {
       loggy.warning("error launching [$uri]", e, stackTrace);
       return false;

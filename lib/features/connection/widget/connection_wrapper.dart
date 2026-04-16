@@ -28,14 +28,9 @@ class _ConnectionWrapperState extends ConsumerState<ConnectionWrapper> with AppL
             .read(inAppNotificationControllerProvider)
             .showInfoToast(
               t.connection.reconnectMsg,
-              // actionText: t.connection.reconnect,
-              // callback: () async {
-              //   await ref
-              //       .read(connectionNotifierProvider.notifier)
-              //       .reconnect(await ref.read(activeProfileProvider.future));
-              // },
             );
-        await ref.read(connectionNotifierProvider.notifier).reconnect(await ref.read(activeProfileProvider.future));
+        // reconnect is already triggered by ConfigOptionNotifier listener;
+        // calling it here too caused a race condition (two concurrent reconnects).
       }
     });
 

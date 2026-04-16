@@ -13,7 +13,7 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
     
     
     private var tunnel: ExtensionProvider
-    private var networkSettings: NEPacketTunnelNetworkSettings?
+    var networkSettings: NEPacketTunnelNetworkSettings?
 
     init(_ tunnel: ExtensionProvider) {
         self.tunnel = tunnel
@@ -255,7 +255,6 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
     private var nwMonitor: NWPathMonitor?
 
     public func startDefaultInterfaceMonitor(_ listener: LibboxInterfaceUpdateListenerProtocol?) throws {
-        return
         guard let listener else {
             return
         }
@@ -274,7 +273,6 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
     }
 
     private func onUpdateDefaultInterface(_ listener: LibboxInterfaceUpdateListenerProtocol, _ path: Network.NWPath) {
-        return
         guard path.status != .unsatisfied,
               let defaultInterface = path.availableInterfaces.first
         else {
@@ -290,7 +288,6 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
     }
 
     public func getInterfaces() throws -> LibboxNetworkInterfaceIteratorProtocol {
-        throw NSError(domain: "not implemented", code: 0)
         guard let nwMonitor else {
             throw NSError(domain: "ExtensionPlatformInterface", code: 0, userInfo: [NSLocalizedDescriptionKey: String(localized: "NWMonitor not started")])
         }
@@ -369,43 +366,43 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
     }
 
     public func readWIFIState() -> LibboxWIFIState? {
-//        #if os(iOS)
-//            let network = runBlocking {
-//                await NEHotspotNetwork.fetchCurrent()
-//            }
-//            guard let network else {
-//                return nil
-//            }
-//            return LibboxWIFIState(network.ssid, wifiBSSID: network.bssid)!
-//        #elseif os(macOS)
-//            if Variant.useSystemExtension {
-//                return UserServiceClient.shared.readWIFIState()
-//            }
-//            guard let interface = CWWiFiClient.shared().interface() else {
-//                return nil
-//            }
-//            guard let ssid = interface.ssid() else {
-//                return nil
-//            }
-//            guard let bssid = interface.bssid() else {
-//                return nil
-//            }
-//            return LibboxWIFIState(ssid, wifiBSSID: bssid)!
-//        #else
+        #if os(iOS)
+            let network = runBlocking {
+                await NEHotspotNetwork.fetchCurrent()
+            }
+            guard let network else {
+                return nil
+            }
+            return LibboxWIFIState(network.ssid, wifiBSSID: network.bssid)!
+        #elseif os(macOS)
+            if Variant.useSystemExtension {
+                return UserServiceClient.shared.readWIFIState()
+            }
+            guard let interface = CWWiFiClient.shared().interface() else {
+                return nil
+            }
+            guard let ssid = interface.ssid() else {
+                return nil
+            }
+            guard let bssid = interface.bssid() else {
+                return nil
+            }
+            return LibboxWIFIState(ssid, wifiBSSID: bssid)!
+        #else
             return nil
-//        #endif
+        #endif
     }
 
     public func readWIFISSID() -> String? {
-//        #if os(iOS)
-//            return runBlocking {
-//                await NEHotspotNetwork.fetchCurrent()?.ssid
-//            }
-//        #elseif os(macOS)
-//            return CWWiFiClient.shared().interface()?.ssid()
-//        #else
+        #if os(iOS)
+            return runBlocking {
+                await NEHotspotNetwork.fetchCurrent()?.ssid
+            }
+        #elseif os(macOS)
+            return CWWiFiClient.shared().interface()?.ssid()
+        #else
             return nil
-//        #endif
+        #endif
     }
 
 //    public func serviceStop() throws {
