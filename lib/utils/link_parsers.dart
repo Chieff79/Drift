@@ -22,6 +22,36 @@ abstract class LinkParser {
   // protocols schemas
   static const protocols = ['drift', 'hiddify', 'v2ray', 'v2rayn', 'v2rayng', 'clash', 'clashmeta', 'sing-box'];
 
+  // single-proxy URL schemes (each link = one server, treat as local content)
+  static const proxySchemes = {
+    'vless',
+    'vmess',
+    'ss',
+    'ssconf',
+    'trojan',
+    'tuic',
+    'hy',
+    'hy2',
+    'hysteria',
+    'hysteria2',
+    'ssh',
+    'wg',
+    'awg',
+    'shadowtls',
+    'mieru',
+    'warp',
+  };
+
+  /// Returns true if [link] is a single-proxy URL that should be treated as
+  /// local subscription content (one server config) rather than a remote
+  /// subscription URL.
+  static bool isProxyLink(String link) {
+    final trimmed = link.trim();
+    final colonIdx = trimmed.indexOf('://');
+    if (colonIdx <= 0) return false;
+    return proxySchemes.contains(trimmed.substring(0, colonIdx).toLowerCase());
+  }
+
   static ProfileLink? parse(String link) {
     return simple(link) ?? deep(link);
   }

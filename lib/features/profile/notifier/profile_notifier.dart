@@ -67,7 +67,13 @@ class AddProfileNotifier extends _$AddProfileNotifier with AppLogger {
       // final activeProfile = await ref.read(activeProfileProvider.future);
       // final markAsActive = activeProfile == null || ref.read(Preferences.markNewProfileActive);
       final TaskEither<ProfileFailure, Unit> task;
-      if (LinkParser.parse(rawInput) case (final rs)?) {
+      final trimmed = rawInput.trim();
+      if (LinkParser.isProxyLink(trimmed)) {
+        // Single proxy URL like vless://, vmess://, ss://, trojan://, etc.
+        // Treat as local content — one config in the profile.
+        loggy.debug("adding profile, single proxy link: [${trimmed.split('://').first}://...]");
+        task = _profilesRepo.addLocal(trimmed);
+      } else if (LinkParser.parse(trimmed) case (final rs)?) {
         loggy.debug("adding profile, url: [${rs.url}]");
         task = _profilesRepo.upsertRemote(
           rs.url,
@@ -76,7 +82,7 @@ class AddProfileNotifier extends _$AddProfileNotifier with AppLogger {
         );
       } else {
         loggy.debug("adding profile, content");
-        task = _profilesRepo.addLocal(safeDecodeBase64(rawInput));
+        task = _profilesRepo.addLocal(safeDecodeBase64(trimmed));
       }
       return await task
           .match(
@@ -97,7 +103,13 @@ class AddProfileNotifier extends _$AddProfileNotifier with AppLogger {
     if (state.isLoading) return;
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final task = _profilesRepo.upsertRemote(url, userOverride: userOverride);
+      final trimmed = url.trim();
+      // Single proxy schemes (vless://, vmess://, ...) are local content,
+      // not remote subscriptions. Route them to addLocal so we don't try
+      // to HTTP-download them.
+      final TaskEither<ProfileFailure, Unit> task = LinkParser.isProxyLink(trimmed)
+          ? _profilesRepo.addLocal(trimmed, userOverride: userOverride)
+          : _profilesRepo.upsertRemote(trimmed, userOverride: userOverride);
       return await task
           .match(
             (err) {

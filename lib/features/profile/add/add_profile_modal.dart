@@ -8,6 +8,7 @@ import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/features/profile/add/widgets/widgets.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/profile_notifier.dart';
+import 'package:hiddify/utils/link_parsers.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -151,7 +152,14 @@ class AddProfileManual extends HookConsumerWidget {
             child: CustomTextFormField(
               maxLines: 1,
               controller: urlTextController,
-              validator: (value) => (value != null && !isUrl(value)) ? t.pages.profileDetails.form.invalidUrl : null,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return null;
+                final v = value.trim();
+                // Accept http/https subscription URLs OR single proxy URLs
+                // (vless://, vmess://, ss://, trojan://, etc.).
+                if (isUrl(v) || LinkParser.isProxyLink(v)) return null;
+                return t.pages.profileDetails.form.invalidUrl;
+              },
               label: t.common.url,
               hint: t.pages.profileDetails.form.urlHint,
             ),

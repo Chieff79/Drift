@@ -66,13 +66,24 @@ class HiddifyCoreService with InfraLogger {
 
   TaskEither<String, Unit> validateConfigByPath(String path, String tempPath, bool debug) {
     return TaskEither(() async {
+      const callTimeout = Duration(seconds: 15);
       try {
-        final response = await core.fgClient.parse(ParseRequest(tempPath: tempPath, configPath: path, debug: false));
+        final response = await core.fgClient
+            .parse(ParseRequest(tempPath: tempPath, configPath: path, debug: false))
+            .timeout(callTimeout);
         if (response.responseCode != ResponseCode.OK) return left("${response.responseCode} ${response.message}");
       } catch (e) {
+        loggy.warning("parse failed, re-setting up core and retrying: $e");
         await setup().run();
-        final response = await core.fgClient.parse(ParseRequest(tempPath: tempPath, configPath: path, debug: false));
-        if (response.responseCode != ResponseCode.OK) return left("${response.responseCode} ${response.message}");
+        try {
+          final response = await core.fgClient
+              .parse(ParseRequest(tempPath: tempPath, configPath: path, debug: false))
+              .timeout(callTimeout);
+          if (response.responseCode != ResponseCode.OK) return left("${response.responseCode} ${response.message}");
+        } catch (e2) {
+          loggy.error("parse still failing after retry: $e2");
+          return left("core unreachable: $e2");
+        }
       }
       return right(unit);
     });
@@ -118,11 +129,15 @@ class HiddifyCoreService with InfraLogger {
       // latestOptions = options;
       final request = ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson()));
 
+      // Hard timeout — without it a broken gRPC channel can hang the call
+      // forever and leave the UI stuck on the loading spinner.
+      const callTimeout = Duration(seconds: 8);
+
       Future<Either<String, Unit>> doChange() async {
         try {
-          final res = await core.fgClient.changeHiddifySettings(request);
+          final res = await core.fgClient.changeHiddifySettings(request).timeout(callTimeout);
           if (res.messageType != MessageType.EMPTY) return left("${res.messageType} ${res.message}");
-          await core.bgClient.changeHiddifySettings(request);
+          await core.bgClient.changeHiddifySettings(request).timeout(callTimeout);
         } on GrpcError catch (e) {
           if (e.code == StatusCode.unavailable) {
             loggy.debug("background core is not started yet! $e");
@@ -137,11 +152,16 @@ class HiddifyCoreService with InfraLogger {
         return await doChange();
       } catch (e) {
         // gRPC channel may be in a broken state (common after deleting an
-        // active profile, especially on macOS). Re-setup the core and retry
-        // once — same defensive pattern as validateConfigByPath.
+        // active profile, especially on macOS) or timed out. Re-setup the
+        // core and retry once — same defensive pattern as validateConfigByPath.
         loggy.warning("changeOptions failed, re-setting up core and retrying: $e");
         await setup().run();
-        return await doChange();
+        try {
+          return await doChange();
+        } catch (e2) {
+          loggy.error("changeOptions still failing after retry: $e2");
+          return left("core unreachable: $e2");
+        }
       }
     });
   }
