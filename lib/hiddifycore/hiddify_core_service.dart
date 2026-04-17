@@ -116,23 +116,33 @@ class HiddifyCoreService with InfraLogger {
     return TaskEither(() async {
       loggy.debug("changing options");
       // latestOptions = options;
-      try {
-        final res = await core.fgClient.changeHiddifySettings(
-          ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson())),
-        );
-        if (res.messageType != MessageType.EMPTY) return left("${res.messageType} ${res.message}");
-        await core.bgClient.changeHiddifySettings(
-          ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson())),
-        );
-      } on GrpcError catch (e) {
-        if (e.code == StatusCode.unavailable) {
-          loggy.debug("background core is not started yet! $e");
-        } else {
-          rethrow;
+      final request = ChangeHiddifySettingsRequest(hiddifySettingsJson: jsonEncode(options.toJson()));
+
+      Future<Either<String, Unit>> doChange() async {
+        try {
+          final res = await core.fgClient.changeHiddifySettings(request);
+          if (res.messageType != MessageType.EMPTY) return left("${res.messageType} ${res.message}");
+          await core.bgClient.changeHiddifySettings(request);
+        } on GrpcError catch (e) {
+          if (e.code == StatusCode.unavailable) {
+            loggy.debug("background core is not started yet! $e");
+          } else {
+            rethrow;
+          }
         }
+        return right(unit);
       }
 
-      return right(unit);
+      try {
+        return await doChange();
+      } catch (e) {
+        // gRPC channel may be in a broken state (common after deleting an
+        // active profile, especially on macOS). Re-setup the core and retry
+        // once — same defensive pattern as validateConfigByPath.
+        loggy.warning("changeOptions failed, re-setting up core and retrying: $e");
+        await setup().run();
+        return await doChange();
+      }
     });
   }
 

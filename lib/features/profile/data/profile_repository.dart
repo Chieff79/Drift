@@ -88,7 +88,16 @@ class ProfileRepositoryImpl with ExceptionHandler, InfraLogger implements Profil
   TaskEither<ProfileFailure, Unit> deleteById(String id, bool isActive) {
     return TaskEither.tryCatch(() async {
       await _profileDataSource.deleteById(id, isActive);
-      await _profilePathResolver.file(id).delete();
+      // File may not exist if the profile was never fully written.
+      // Don't fail the delete in that case — DB row is gone, that's what matters.
+      try {
+        final file = _profilePathResolver.file(id);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        loggy.warning("could not delete profile file for $id: $e");
+      }
       return unit;
     }, ProfileUnexpectedFailure.new);
   }
