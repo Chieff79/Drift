@@ -25,9 +25,14 @@ mixin _$SingboxRule {
   List<String>? get domains => throw _privateConstructorUsedError;
   String? get ip => throw _privateConstructorUsedError;
   String? get port => throw _privateConstructorUsedError;
-  String? get protocol => throw _privateConstructorUsedError;
+  String? get protocol =>
+      throw _privateConstructorUsedError; // sing-box `process_name`: matches by executable basename (e.g. "Tinkoff.exe",
+  // "yandex-browser"). Used for desktop split-tunneling since Android handles
+  // per-app bypass via VpnService.Builder.addDisallowedApplication().
+  List<String>? get processNames => throw _privateConstructorUsedError;
   @JsonKey(toJson: _ruleNetworkToJson)
   RuleNetwork get network => throw _privateConstructorUsedError;
+  @JsonKey(toJson: _ruleOutboundToJson)
   RuleOutbound get outbound => throw _privateConstructorUsedError;
 
   /// Serializes this SingboxRule to a JSON map.
@@ -53,8 +58,9 @@ abstract class $SingboxRuleCopyWith<$Res> {
     String? ip,
     String? port,
     String? protocol,
+    List<String>? processNames,
     @JsonKey(toJson: _ruleNetworkToJson) RuleNetwork network,
-    RuleOutbound outbound,
+    @JsonKey(toJson: _ruleOutboundToJson) RuleOutbound outbound,
   });
 }
 
@@ -78,6 +84,7 @@ class _$SingboxRuleCopyWithImpl<$Res, $Val extends SingboxRule>
     Object? ip = freezed,
     Object? port = freezed,
     Object? protocol = freezed,
+    Object? processNames = freezed,
     Object? network = null,
     Object? outbound = null,
   }) {
@@ -103,6 +110,10 @@ class _$SingboxRuleCopyWithImpl<$Res, $Val extends SingboxRule>
                 ? _value.protocol
                 : protocol // ignore: cast_nullable_to_non_nullable
                       as String?,
+            processNames: freezed == processNames
+                ? _value.processNames
+                : processNames // ignore: cast_nullable_to_non_nullable
+                      as List<String>?,
             network: null == network
                 ? _value.network
                 : network // ignore: cast_nullable_to_non_nullable
@@ -132,8 +143,9 @@ abstract class _$$SingboxRuleImplCopyWith<$Res>
     String? ip,
     String? port,
     String? protocol,
+    List<String>? processNames,
     @JsonKey(toJson: _ruleNetworkToJson) RuleNetwork network,
-    RuleOutbound outbound,
+    @JsonKey(toJson: _ruleOutboundToJson) RuleOutbound outbound,
   });
 }
 
@@ -156,6 +168,7 @@ class __$$SingboxRuleImplCopyWithImpl<$Res>
     Object? ip = freezed,
     Object? port = freezed,
     Object? protocol = freezed,
+    Object? processNames = freezed,
     Object? network = null,
     Object? outbound = null,
   }) {
@@ -181,6 +194,10 @@ class __$$SingboxRuleImplCopyWithImpl<$Res>
             ? _value.protocol
             : protocol // ignore: cast_nullable_to_non_nullable
                   as String?,
+        processNames: freezed == processNames
+            ? _value._processNames
+            : processNames // ignore: cast_nullable_to_non_nullable
+                  as List<String>?,
         network: null == network
             ? _value.network
             : network // ignore: cast_nullable_to_non_nullable
@@ -204,9 +221,11 @@ class _$SingboxRuleImpl extends _SingboxRule {
     this.ip,
     this.port,
     this.protocol,
+    final List<String>? processNames,
     @JsonKey(toJson: _ruleNetworkToJson) this.network = RuleNetwork.tcpAndUdp,
-    this.outbound = RuleOutbound.proxy,
+    @JsonKey(toJson: _ruleOutboundToJson) this.outbound = RuleOutbound.proxy,
   }) : _domains = domains,
+       _processNames = processNames,
        super._();
 
   factory _$SingboxRuleImpl.fromJson(Map<String, dynamic> json) =>
@@ -230,16 +249,32 @@ class _$SingboxRuleImpl extends _SingboxRule {
   final String? port;
   @override
   final String? protocol;
+  // sing-box `process_name`: matches by executable basename (e.g. "Tinkoff.exe",
+  // "yandex-browser"). Used for desktop split-tunneling since Android handles
+  // per-app bypass via VpnService.Builder.addDisallowedApplication().
+  final List<String>? _processNames;
+  // sing-box `process_name`: matches by executable basename (e.g. "Tinkoff.exe",
+  // "yandex-browser"). Used for desktop split-tunneling since Android handles
+  // per-app bypass via VpnService.Builder.addDisallowedApplication().
+  @override
+  List<String>? get processNames {
+    final value = _processNames;
+    if (value == null) return null;
+    if (_processNames is EqualUnmodifiableListView) return _processNames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
   @override
   @JsonKey(toJson: _ruleNetworkToJson)
   final RuleNetwork network;
   @override
-  @JsonKey()
+  @JsonKey(toJson: _ruleOutboundToJson)
   final RuleOutbound outbound;
 
   @override
   String toString() {
-    return 'SingboxRule(ruleSetUrl: $ruleSetUrl, domains: $domains, ip: $ip, port: $port, protocol: $protocol, network: $network, outbound: $outbound)';
+    return 'SingboxRule(ruleSetUrl: $ruleSetUrl, domains: $domains, ip: $ip, port: $port, protocol: $protocol, processNames: $processNames, network: $network, outbound: $outbound)';
   }
 
   @override
@@ -254,6 +289,10 @@ class _$SingboxRuleImpl extends _SingboxRule {
             (identical(other.port, port) || other.port == port) &&
             (identical(other.protocol, protocol) ||
                 other.protocol == protocol) &&
+            const DeepCollectionEquality().equals(
+              other._processNames,
+              _processNames,
+            ) &&
             (identical(other.network, network) || other.network == network) &&
             (identical(other.outbound, outbound) ||
                 other.outbound == outbound));
@@ -268,6 +307,7 @@ class _$SingboxRuleImpl extends _SingboxRule {
     ip,
     port,
     protocol,
+    const DeepCollectionEquality().hash(_processNames),
     network,
     outbound,
   );
@@ -293,8 +333,9 @@ abstract class _SingboxRule extends SingboxRule {
     final String? ip,
     final String? port,
     final String? protocol,
+    final List<String>? processNames,
     @JsonKey(toJson: _ruleNetworkToJson) final RuleNetwork network,
-    final RuleOutbound outbound,
+    @JsonKey(toJson: _ruleOutboundToJson) final RuleOutbound outbound,
   }) = _$SingboxRuleImpl;
   const _SingboxRule._() : super._();
 
@@ -310,11 +351,16 @@ abstract class _SingboxRule extends SingboxRule {
   @override
   String? get port;
   @override
-  String? get protocol;
+  String? get protocol; // sing-box `process_name`: matches by executable basename (e.g. "Tinkoff.exe",
+  // "yandex-browser"). Used for desktop split-tunneling since Android handles
+  // per-app bypass via VpnService.Builder.addDisallowedApplication().
+  @override
+  List<String>? get processNames;
   @override
   @JsonKey(toJson: _ruleNetworkToJson)
   RuleNetwork get network;
   @override
+  @JsonKey(toJson: _ruleOutboundToJson)
   RuleOutbound get outbound;
 
   /// Create a copy of SingboxRule

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dartx/dartx.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:hiddify/core/model/optional_range.dart';
@@ -8,6 +10,7 @@ import 'package:hiddify/core/utils/preferences_utils.dart';
 import 'package:hiddify/features/log/model/log_level.dart';
 import 'package:hiddify/features/profile/data/profile_parser.dart';
 import 'package:hiddify/features/settings/model/config_option_failure.dart';
+import 'package:hiddify/features/per_app_proxy/model/russian_processes.dart';
 import 'package:hiddify/singbox/model/singbox_config_enum.dart';
 import 'package:hiddify/singbox/model/singbox_config_option.dart';
 import 'package:hiddify/singbox/model/singbox_rule.dart';
@@ -232,6 +235,27 @@ abstract class ConfigOptions {
 
   static final enableRuAppsBypass = PreferencesNotifier.create<bool, bool>("enable-ru-apps-bypass", true);
 
+  /// Включает случайный выбор SNI из [sniPool] при каждом новом подключении.
+  /// Снижает шансы на выдачу клиента по повторяющемуся SNI (поведенческий ТСПУ).
+  static final sniRotation = PreferencesNotifier.create<bool, bool>("sni-rotation", true);
+
+  /// Пул SNI-кандидатов. Используется при [sniRotation] == true. Значения
+  /// сериализуются через `;` в SharedPreferences (см. PreferencesEntry).
+  static final sniPool = PreferencesNotifier.create<List<String>, List<String>>(
+    "sni-pool",
+    const [
+      "www.icloud.com",
+      "dl.google.com",
+      "www.microsoft.com",
+      "www.cloudflare.com",
+    ],
+  );
+
+  /// Padding/jitter на уровне sing-box outbound против AI-поведенческого
+  /// анализа ТСПУ. При true — включает `mux.padding` для всех outbound'ов,
+  /// если `enableMux = true`.
+  static final enableReplayProtection = PreferencesNotifier.create<bool, bool>("enable-replay-protection", true);
+
   static final enableWarp = PreferencesNotifier.create<bool, bool>("enable-warp", false);
 
   static final warpDetourMode = PreferencesNotifier.create<WarpDetourMode, String>(
@@ -281,6 +305,17 @@ abstract class ConfigOptions {
 
   static final warpWireguardConfig = PreferencesNotifier.create<String, String>("warp-wireguard-config", "");
   static final warp2WireguardConfig = PreferencesNotifier.create<String, String>("warp2-wireguard-config", "");
+
+  /// Returns a random SNI from [sniPool] when [sniRotation] is enabled;
+  /// otherwise returns null. Consumers (profile_parser, hiddify_core_service)
+  /// can use this at connection time to override the SNI on outbound configs
+  /// whose TLS section uses a server_name/sni field.
+  static final rotatedSni = Provider.autoDispose<String?>((ref) {
+    if (!ref.watch(sniRotation)) return null;
+    final pool = ref.watch(sniPool);
+    if (pool.isEmpty) return null;
+    return pool[Random().nextInt(pool.length)];
+  });
 
   static final hasExperimentalFeatures = Provider.autoDispose<bool>((ref) {
     // final mode = ref.watch(serviceMode);
@@ -332,6 +367,10 @@ abstract class ConfigOptions {
     "bypass-lan": bypassLan,
     "allow-connection-from-lan": allowConnectionFromLan,
     "enable-ru-whitelist": enableRuWhitelist,
+    "enable-ru-apps-bypass": enableRuAppsBypass,
+    "sni-rotation": sniRotation,
+    "sni-pool": sniPool,
+    "enable-replay-protection": enableReplayProtection,
     // "enable-dns-routing": enableDnsRouting,
 
     // mux
@@ -436,6 +475,19 @@ abstract class ConfigOptions {
       );
     }
 
+    // Desktop split-tunneling: bypass tunnel for RU-process-based apps.
+    // Android handles this via VpnService.Builder.addDisallowedApplication(),
+    // so we only emit this rule on desktop. `process_name` matches against the
+    // executable basename seen by sing-box on macOS/Windows/Linux.
+    if (PlatformUtils.isDesktop && ref.watch(enableRuAppsBypass)) {
+      rules.add(
+        const SingboxRule(
+          processNames: RussianProcesses.names,
+          outbound: RuleOutbound.bypass,
+        ),
+      );
+    }
+
     final mode = ref.watch(serviceMode);
     // final reg = ref.watch(Preferences.region.notifier).raw();
 
@@ -473,7 +525,11 @@ abstract class ConfigOptions {
       independentDnsCache: ref.watch(independentDnsCache),
       mux: SingboxMuxOption(
         enable: ref.watch(enableMux),
-        padding: ref.watch(muxPadding),
+        // Replay protection forces mux.padding = true for every outbound when
+        // mux is enabled — mitigates AI-behavioural DPI that sees fixed frame
+        // sizes. Users can still disable padding explicitly by turning
+        // `enableReplayProtection` off.
+        padding: ref.watch(enableMux) && (ref.watch(enableReplayProtection) || ref.watch(muxPadding)),
         maxStreams: ref.watch(muxMaxStreams),
         protocol: ref.watch(muxProtocol),
       ),

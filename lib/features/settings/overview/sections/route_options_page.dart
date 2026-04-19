@@ -103,6 +103,25 @@ class RouteOptionsPage extends HookConsumerWidget {
               value: ref.watch(ConfigOptions.enableRuAppsBypass),
               onChanged: ref.read(ConfigOptions.enableRuAppsBypass.notifier).update,
             ),
+          if (PlatformUtils.isDesktop)
+            SwitchListTile.adaptive(
+              title: const Text('РФ-процессы без VPN'),
+              subtitle: const Text(
+                'Клиенты Сбера, Тинькофф, Яндекса, Kaspersky и др. на десктопе — мимо туннеля. Работает через process_name в sing-box',
+              ),
+              secondary: const Icon(Icons.desktop_windows_rounded),
+              value: ref.watch(ConfigOptions.enableRuAppsBypass),
+              onChanged: ref.read(ConfigOptions.enableRuAppsBypass.notifier).update,
+            ),
+          SwitchListTile.adaptive(
+            title: const Text('Ротация SNI'),
+            subtitle: const Text(
+              'Случайный SNI из пула при каждом подключении. Меньше шансов детекта по повторяющемуся отпечатку',
+            ),
+            secondary: const Icon(Icons.shuffle_rounded),
+            value: ref.watch(ConfigOptions.sniRotation),
+            onChanged: ref.read(ConfigOptions.sniRotation.notifier).update,
+          ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.routing.bypassLan),
             subtitle: const Text('Не направлять локальный трафик через туннель'),

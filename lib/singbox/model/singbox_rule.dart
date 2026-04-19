@@ -14,6 +14,10 @@ class SingboxRule with _$SingboxRule {
     String? ip,
     String? port,
     String? protocol,
+    // sing-box `process_name`: matches by executable basename (e.g. "Tinkoff.exe",
+    // "yandex-browser"). Used for desktop split-tunneling since Android handles
+    // per-app bypass via VpnService.Builder.addDisallowedApplication().
+    List<String>? processNames,
     @JsonKey(toJson: _ruleNetworkToJson) @Default(RuleNetwork.tcpAndUdp) RuleNetwork network,
     @JsonKey(toJson: _ruleOutboundToJson) @Default(RuleOutbound.proxy) RuleOutbound outbound,
   }) = _SingboxRule;

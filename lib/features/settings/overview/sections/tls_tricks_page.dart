@@ -113,6 +113,15 @@ class TlsTricksPage extends HookConsumerWidget {
             formatInputValue: (value) => value.format(),
             enabled: canChangeOption,
           ),
+          SwitchListTile.adaptive(
+            title: const Text('Защита от реплея'),
+            subtitle: const Text(
+              'Форс mux.padding для outbound-ов, если mux включён. Затрудняет AI-анализ фреймов ТСПУ',
+            ),
+            value: ref.watch(ConfigOptions.enableReplayProtection),
+            secondary: const Icon(Icons.verified_user_outlined),
+            onChanged: ref.read(ConfigOptions.enableReplayProtection.notifier).update,
+          ),
         ],
       ),
     );
