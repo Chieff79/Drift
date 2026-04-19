@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:hiddify/core/haptic/haptic_service.dart';
@@ -123,6 +124,13 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
         return _disconnect();
       }
       _isReconnecting = true;
+      // Safety: освобождаем lock если reconnect завис (иначе все последующие reconnect игнорятся навсегда)
+      final safetyTimer = Timer(const Duration(seconds: 30), () {
+        if (_isReconnecting) {
+          loggy.warning("reconnect safety timeout — releasing lock");
+          _isReconnecting = false;
+        }
+      });
       loggy.info("active profile changed, reconnecting");
       try {
         await ref.read(Preferences.startedByUser.notifier).update(true);
@@ -134,6 +142,7 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
               .showCustomAlertFromErr(err.present(ref.read(translationsProvider).requireValue));
         }).run();
       } finally {
+        safetyTimer.cancel();
         _isReconnecting = false;
       }
     }

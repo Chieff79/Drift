@@ -17,7 +17,7 @@ typedef ProfileUpdateStatus = ({String name, bool success});
 @Riverpod(keepAlive: true)
 class ForegroundProfilesUpdateNotifier extends _$ForegroundProfilesUpdateNotifier with AppLogger {
   static const prefKey = "profiles_update_check";
-  static const interval = Duration(minutes: 15);
+  static const interval = Duration(hours: 1);
 
   @override
   Stream<ProfileUpdateStatus?> build() {

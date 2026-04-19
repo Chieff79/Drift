@@ -14,8 +14,10 @@ part 'auto_failover_notifier.g.dart';
 @Riverpod(keepAlive: true)
 class AutoFailoverNotifier extends _$AutoFailoverNotifier with AppLogger {
   Timer? _healthCheckTimer;
-  static const _checkInterval = Duration(seconds: 10);
-  static const _failoverDelay = 10000; // ms, considered timeout
+  int _consecutiveFailures = 0;
+  static const _checkInterval = Duration(seconds: 20);
+  static const _failoverDelay = 45000; // ms, считается таймаутом (мобильная сеть + ТСПУ стресс)
+  static const _consecutiveFailuresBeforeSwitch = 2; // hysteresis — не дёргать на одиночный скачок
 
   @override
   Future<void> build() async {
@@ -30,11 +32,12 @@ class AutoFailoverNotifier extends _$AutoFailoverNotifier with AppLogger {
 
     if (!isConnected) {
       _healthCheckTimer?.cancel();
+      _consecutiveFailures = 0;
       return;
     }
 
-    // Start periodic health checks when connected
     _healthCheckTimer?.cancel();
+    _consecutiveFailures = 0;
     _healthCheckTimer = Timer.periodic(_checkInterval, (_) => _checkAndFailover());
   }
 
@@ -73,10 +76,20 @@ class AutoFailoverNotifier extends _$AutoFailoverNotifier with AppLogger {
 
       final currentDelay = currentItem?.urlTestDelay ?? 0;
 
-      // If current is fine (< 5s and > 0), no failover needed
-      if (currentDelay > 0 && currentDelay < _failoverDelay) return;
+      if (currentDelay > 0 && currentDelay < _failoverDelay) {
+        _consecutiveFailures = 0;
+        return;
+      }
 
-      // Find best alternative (lowest positive delay, under timeout)
+      _consecutiveFailures++;
+      if (_consecutiveFailures < _consecutiveFailuresBeforeSwitch) {
+        loggy.debug(
+          'Auto-failover: [$currentSelected] unhealthy (delay=${currentDelay}ms), '
+          'waiting ($_consecutiveFailures/$_consecutiveFailuresBeforeSwitch)',
+        );
+        return;
+      }
+
       OutboundInfo? bestItem;
       for (final item in updatedGroup.items) {
         if (item.urlTestDelay <= 0 || item.urlTestDelay >= _failoverDelay) continue;
@@ -92,6 +105,7 @@ class AutoFailoverNotifier extends _$AutoFailoverNotifier with AppLogger {
           'switching to [${bestItem.tag}] delay=${bestItem.urlTestDelay}ms',
         );
         await proxyRepo.selectProxy(updatedGroup.tag, bestItem.tag).run();
+        _consecutiveFailures = 0;
       } else {
         loggy.debug('Auto-failover: no better outbound available');
       }
