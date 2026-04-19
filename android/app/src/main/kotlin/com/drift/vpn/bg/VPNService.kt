@@ -160,6 +160,13 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
                 }
             }
 
+            // Russian apps bypass: список RU-приложений (Сбер, Яндекс, VK и т.п.)
+            // идёт мимо VPN, чтобы их клиентские SDK не детектили VPN через
+            // NetworkCapabilities.hasTransport(TRANSPORT_VPN). Применяется
+            // только если не активен INCLUDE-режим (он несовместим с exclude).
+            val applyRuBypass = Settings.ruAppsBypassEnabled
+            val ruApps = if (applyRuBypass) Settings.ruAppsList else emptyList()
+
             if (Settings.perAppProxyEnabled) {
                 val appList = Settings.perAppProxyList
                 if (Settings.perAppProxyMode == PerAppProxyMode.INCLUDE) {
@@ -171,6 +178,8 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
                     appList.forEach {
                         addExcludePackage(builder,it)
                     }
+                    // Merge RU-bypass with user exclude list
+                    ruApps.forEach { addExcludePackage(builder, it) }
                     addExcludePackage(builder,packageName)
                 }
             } else {
@@ -187,10 +196,12 @@ class VPNService : VpnService(), PlatformInterfaceWrapper {
                             addExcludePackage(builder, excludePackage.next())
                         }
                     }
+                    // RU-bypass even if no user-configured exclude list
+                    ruApps.forEach { addExcludePackage(builder, it) }
 
                     addExcludePackage(builder, packageName)
                 }
-                
+
             }
         }
 

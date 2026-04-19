@@ -5,6 +5,7 @@ import android.util.Base64
 import com.drift.vpn.bg.ProxyService
 import com.drift.vpn.bg.VPNService
 import com.drift.vpn.constant.PerAppProxyMode
+import com.drift.vpn.constant.RussianApps
 import com.drift.vpn.constant.ServiceMode
 import com.drift.vpn.constant.SettingsKey
 import org.json.JSONObject
@@ -28,6 +29,12 @@ object Settings {
 
     val perAppProxyEnabled: Boolean
         get() = perAppProxyMode != PerAppProxyMode.OFF
+
+    val ruAppsBypassEnabled: Boolean
+        get() = preferences.getBoolean(SettingsKey.RU_APPS_BYPASS_ENABLED, true)
+
+    val ruAppsList: List<String>
+        get() = RussianApps.packageNames
 
     val perAppProxyList: List<String>
         get() {

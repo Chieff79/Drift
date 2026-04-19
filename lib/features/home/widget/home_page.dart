@@ -15,6 +15,7 @@ import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/profile/overview/profiles_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
+import 'package:hiddify/utils/platform_utils.dart';
 import 'package:hiddify/utils/uri_utils.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -60,6 +61,11 @@ class HomePage extends HookConsumerWidget {
           // ── Mini whitelist toggle ──
           const _WhitelistChip(),
           const Gap(4),
+          // ── Russian apps bypass (Android only) ──
+          if (PlatformUtils.isAndroid) ...[
+            const _RuAppsChip(),
+            const Gap(4),
+          ],
           // ── Profiles / keys drawer ──
           IconButton(
             icon: const Icon(Icons.key_rounded, size: 22),
@@ -782,6 +788,58 @@ class _WhitelistChip extends ConsumerWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: enabled ? const Color(0xFF30D158) : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  RUSSIAN APPS BYPASS CHIP (AppBar, Android only)
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _RuAppsChip extends ConsumerWidget {
+  const _RuAppsChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(ConfigOptions.enableRuAppsBypass);
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: () => ref.read(ConfigOptions.enableRuAppsBypass.notifier).update(!enabled),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: enabled
+              ? const Color(0xFF0088FF).withValues(alpha: 0.15)
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: enabled
+                ? const Color(0xFF0088FF).withValues(alpha: 0.4)
+                : theme.colorScheme.outline.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              enabled ? Icons.apps_rounded : Icons.apps_outlined,
+              size: 14,
+              color: enabled ? const Color(0xFF0088FF) : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            const Gap(4),
+            Text(
+              'РФ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: enabled ? const Color(0xFF0088FF) : theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],

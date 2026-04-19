@@ -230,6 +230,8 @@ abstract class ConfigOptions {
 
   static final enableRuWhitelist = PreferencesNotifier.create<bool, bool>("enable-ru-whitelist", true);
 
+  static final enableRuAppsBypass = PreferencesNotifier.create<bool, bool>("enable-ru-apps-bypass", true);
+
   static final enableWarp = PreferencesNotifier.create<bool, bool>("enable-warp", false);
 
   static final warpDetourMode = PreferencesNotifier.create<WarpDetourMode, String>(

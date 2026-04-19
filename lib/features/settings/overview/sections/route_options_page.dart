@@ -93,6 +93,16 @@ class RouteOptionsPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.enableRuWhitelist),
             onChanged: ref.read(ConfigOptions.enableRuWhitelist.notifier).update,
           ),
+          if (PlatformUtils.isAndroid)
+            SwitchListTile.adaptive(
+              title: const Text('РФ-приложения без VPN'),
+              subtitle: const Text(
+                'Сбер, Тинькофф, Яндекс, VK, Госуслуги и др. — напрямую. Банки и маркетплейсы не увидят, что включён туннель',
+              ),
+              secondary: const Icon(Icons.account_balance_rounded),
+              value: ref.watch(ConfigOptions.enableRuAppsBypass),
+              onChanged: ref.read(ConfigOptions.enableRuAppsBypass.notifier).update,
+            ),
           SwitchListTile.adaptive(
             title: Text(t.pages.settings.routing.bypassLan),
             subtitle: const Text('Не направлять локальный трафик через туннель'),
