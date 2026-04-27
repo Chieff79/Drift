@@ -110,6 +110,38 @@ abstract class Preferences {
     mapFrom: ActionsAtClosing.values.byName,
     mapTo: (value) => value.name,
   );
+
+  // Выбор сервера пользователем. Применяется после подключения VPN через
+  // selectOutbound. null = авто (первый в selector-группе).
+  static final selectedOutboundTag = PreferencesNotifier.create<String?, String?>(
+    "selected_outbound_tag",
+    null,
+    mapFrom: (value) => (value == null || value.isEmpty) ? null : value,
+    mapTo: (value) => value ?? '',
+  );
+
+  static final selectedGroupTag = PreferencesNotifier.create<String?, String?>(
+    "selected_group_tag",
+    null,
+    mapFrom: (value) => (value == null || value.isEmpty) ? null : value,
+    mapTo: (value) => value ?? '',
+  );
+
+  // Умная авто-ротация по семействам протоколов (anti-detect для ТСПУ).
+  // Когда true — auto_failover приоритезирует семейство активного outbound,
+  // переключаясь между relay одной категории, прежде чем менять семейство.
+  static final useAutoRotation = PreferencesNotifier.create<bool, bool>(
+    "use_auto_rotation",
+    true,
+  );
+
+  // Decoy traffic — фоновые HTTPS-запросы к легитимным доменам через VPN.
+  // Цель: маскировать профиль трафика под обычный browsing, чтобы не
+  // классифицировался как VPN-only flow (важно для РФ-операторов с 2026-05).
+  static final useDecoyTraffic = PreferencesNotifier.create<bool, bool>(
+    "use_decoy_traffic",
+    true,
+  );
 }
 
 @Riverpod(keepAlive: true)

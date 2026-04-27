@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
@@ -194,6 +195,28 @@ class SettingsPage extends HookConsumerWidget {
             value: ref.watch(ConfigOptions.enableWarp),
             onChanged: (value) async {
               await ref.read(ConfigOptions.enableWarp.notifier).update(value);
+            },
+          ),
+          SwitchListTile.adaptive(
+            secondary: const Icon(Icons.swap_horiz_rounded),
+            title: const Text('Умное переключение серверов'),
+            subtitle: const Text(
+              'Автоматически выбирает рабочий relay, когда текущий блокируется',
+            ),
+            value: ref.watch(Preferences.useAutoRotation),
+            onChanged: (value) async {
+              await ref.read(Preferences.useAutoRotation.notifier).update(value);
+            },
+          ),
+          SwitchListTile.adaptive(
+            secondary: const Icon(Icons.masks_rounded),
+            title: const Text('Маскировка трафика'),
+            subtitle: const Text(
+              'Имитирует обычный browsing, чтобы оператор не определил подключение как VPN',
+            ),
+            value: ref.watch(Preferences.useDecoyTraffic),
+            onChanged: (value) async {
+              await ref.read(Preferences.useDecoyTraffic.notifier).update(value);
             },
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
